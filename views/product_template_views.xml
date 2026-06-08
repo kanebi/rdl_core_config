@@ -34,8 +34,9 @@
                             <field name="brewery_crate_cost" required="is_brewery"/>
                             <field name="crate_product_id" options="{'no_create': True}"/>
                         </group>
-                        <group string="Full Bottle Bundle" name="group_full_bottle">
+                        <group string="Generated Bundles" name="group_bundles">
                             <field name="full_bottle_product_id" options="{'no_create': True}"/>
+                            <field name="empties_product_id" options="{'no_create': True}"/>
                         </group>
                     </group>
                 </page>

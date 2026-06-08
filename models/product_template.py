@@ -54,6 +54,8 @@ class ProductTemplate(models.Model):
     bottle_product_id = fields.Many2one('product.product', "Empty Bottle Product", readonly=True, ondelete='set null')
     crate_product_id = fields.Many2one('product.product', "Empty Crate Product", readonly=True, ondelete='set null')
     full_bottle_product_id = fields.Many2one('product.product', "Full Bottle Product", readonly=True, ondelete='set null')
+    empties_product_id = fields.Many2one('product.product', "Empties Kit Product", readonly=True, ondelete='set null')
+
 
     @api.onchange('brewery_liquid_qty')
     def _onchange_liquid_qty(self):
@@ -197,6 +199,14 @@ class ProductTemplate(models.Model):
         full_bottle_sellers = [(0, 0, {
             'partner_id': s.partner_id.id,
             'price': self.brewery_liquid_cost + self.brewery_bottle_cost,
+            'min_qty': s.min_qty,
+            'delay': s.delay,
+            'currency_id': s.currency_id.id,
+        }) for s in self.seller_ids]
+
+        empties_sellers = [(0, 0, {
+            'partner_id': s.partner_id.id,
+            'price': (self.brewery_bottle_cost * self.brewery_bottle_qty) + self.brewery_crate_cost,
             'min_qty': s.min_qty,
             'delay': s.delay,
             'currency_id': s.currency_id.id,
@@ -353,6 +363,66 @@ class ProductTemplate(models.Model):
                 'bom_line_ids': [(5, 0, 0)] + full_bottle_bom_lines,
             })
 
+        # 3.7 Sync/Create Empties Template (Empty Bottle xN + Empty Crate x1)
+        empties_price = (self.brewery_bottle_price * self.brewery_bottle_qty) + self.brewery_crate_price
+        empties_cost = (self.brewery_bottle_cost * self.brewery_bottle_qty) + self.brewery_crate_cost
+        if not self.empties_product_id:
+            empties_tmpl = self.env['product.template'].create({
+                'name': f"{base_name} (Empties)",
+                'categ_id': self.env.ref('rdl_core_config.product_category_empties').id,
+                'list_price': empties_price,
+                'standard_price': empties_cost,
+                'uom_id': self.env.ref('uom.product_uom_unit').id,
+                'uom_po_id': self.env.ref('uom.product_uom_unit').id,
+                'type': 'consu',
+                'is_storable': True,
+                'available_in_pos': True,
+                'is_brewery': False,
+                'route_ids': [(6, 0, routes_to_set)],
+                'seller_ids': empties_sellers,
+            })
+            super(ProductTemplate, self).write({
+                'empties_product_id': empties_tmpl.product_variant_id.id
+            })
+        else:
+            self.empties_product_id.product_tmpl_id.write({
+                'name': f"{base_name} (Empties)",
+                'list_price': empties_price,
+                'standard_price': empties_cost,
+                'available_in_pos': True,
+                'is_brewery': False,
+                'route_ids': [(6, 0, routes_to_set)],
+                'seller_ids': [(5, 0, 0)] + empties_sellers,
+            })
+
+        # Synchronize Phantom BOM for Empties (N x Empty Bottle + 1 x Empty Crate)
+        empties_bom = self.env['mrp.bom'].search([('product_tmpl_id', '=', self.empties_product_id.product_tmpl_id.id)], limit=1)
+        empties_bom_lines = [
+            (0, 0, {
+                'product_id': self.bottle_product_id.id,
+                'product_qty': self.brewery_bottle_qty,
+                'product_uom_id': self.env.ref('rdl_core_config.uom_bottle').id,
+            }),
+            (0, 0, {
+                'product_id': self.crate_product_id.id,
+                'product_qty': 1.0,
+                'product_uom_id': self.env.ref('uom.product_uom_unit').id,
+            })
+        ]
+        if not empties_bom:
+            self.env['mrp.bom'].create({
+                'product_tmpl_id': self.empties_product_id.product_tmpl_id.id,
+                'product_uom_id': self.env.ref('uom.product_uom_unit').id,
+                'type': 'phantom',
+                'bom_line_ids': empties_bom_lines,
+            })
+        else:
+            empties_bom.write({
+                'product_uom_id': self.env.ref('uom.product_uom_unit').id,
+                'type': 'phantom',
+                'bom_line_ids': [(5, 0, 0)] + empties_bom_lines,
+            })
+
         # 4. Synchronize Phantom BOM for Crate Bundle (statically using 1.0 for empty crate quantity)
         bom = self.env['mrp.bom'].search([('product_tmpl_id', '=', self.id)], limit=1)
         bom_line_vals = [
@@ -427,5 +497,13 @@ class ProductTemplate(models.Model):
             self.full_bottle_product_id.product_tmpl_id.write({
                 'list_price': liquid_price + bottle_price,
                 'standard_price': liquid_cost + bottle_cost,
+                'is_brewery': False,
+            })
+
+        # Also update Empties price/cost if linked
+        if self.empties_product_id:
+            self.empties_product_id.product_tmpl_id.write({
+                'list_price': (bottle_price * self.brewery_bottle_qty) + crate_price,
+                'standard_price': (bottle_cost * self.brewery_bottle_qty) + crate_cost,
                 'is_brewery': False,
             })

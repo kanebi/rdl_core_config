@@ -448,5 +448,15 @@ def post_init_hook(env):
     except Exception:
         pass
 
+    # 5. Ensure all existing brewery products are synced to create the new Empties kit component and BOM
+    try:
+        with env.cr.savepoint():
+            brewery_templates = env['product.template'].search([('is_brewery', '=', True)])
+            for template in brewery_templates:
+                template._sync_brewery_components()
+    except Exception:
+        pass
+
+
 
 

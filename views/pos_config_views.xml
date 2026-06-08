@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_config_view_form_inherit" model="ir.ui.view">
+        <field name="name">pos.config.form.view.inherit</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//setting[@id='other_devices']" position="before">
+                <setting string="POS Stock Location" help="Explicit stock location to filter products. If empty, falls back to the picking type's default source location.">
+                    <field name="stock_location_id" options="{'no_create': True}"/>
+                </setting>
+                <setting string="Negative Stock Alert" help="Alert cashiers when an item has zero or negative stock on click.">
+                    <field name="negative_stock_alert"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="res_config_settings_view_form_inherit_rdl" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.rdl</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='pos_inventory_section']" position="inside">
+                <setting string="Negative Stock Alert" help="Alert cashiers when an item has zero or negative stock on click.">
+                    <field name="pos_negative_stock_alert"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

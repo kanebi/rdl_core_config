@@ -27,7 +27,13 @@ for Odoo 18 Community.
         'data/pos_config_data.xml',
         'views/purchase_order_views.xml',
         'views/product_template_views.xml',
+        'views/pos_config_views.xml',
     ],
+    'assets': {
+        'point_of_sale._assets_pos': [
+            'rdl_core_config/static/src/app/product_screen_patch.js',
+        ],
+    },
     'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,
