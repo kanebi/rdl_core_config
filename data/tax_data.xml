@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- 0% Sales Tax -->
+        <record id="tax_sale_0" model="account.tax">
+            <field name="name">0% Sales Tax</field>
+            <field name="amount">0.0</field>
+            <field name="amount_type">percent</field>
+            <field name="type_tax_use">sale</field>
+            <field name="description">0% Sale</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+
+        <!-- 0% Purchase Tax -->
+        <record id="tax_purchase_0" model="account.tax">
+            <field name="name">0% Purchase Tax</field>
+            <field name="amount">0.0</field>
+            <field name="amount_type">percent</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="description">0% Purchase</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+
+    </data>
+
+    <!-- Force update default taxes on main company on every upgrade -->
+    <data noupdate="0">
+        <record id="base.main_company" model="res.company">
+            <field name="account_sale_tax_id" ref="tax_sale_0"/>
+            <field name="account_purchase_tax_id" ref="tax_purchase_0"/>
+        </record>
+    </data>
+</odoo>

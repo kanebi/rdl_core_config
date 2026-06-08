@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- VSR Group -->
+        <record id="group_vsr" model="res.groups">
+            <field name="name">Van Sales Rep (VSR)</field>
+            <field name="category_id" ref="base.module_category_sales_point_of_sale"/>
+            <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+        </record>
+
+        <!-- Store Cashier Group -->
+        <record id="group_store_cashier" model="res.groups">
+            <field name="name">Store Cashier</field>
+            <field name="category_id" ref="base.module_category_sales_point_of_sale"/>
+            <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+        </record>
+
+        <!-- Manager Group -->
+        <record id="group_manager" model="res.groups">
+            <field name="name">Manager &amp; Inventory Admin</field>
+            <field name="category_id" ref="base.module_category_sales_point_of_sale"/>
+            <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_manager')), (4, ref('stock.group_stock_manager')), (4, ref('purchase.group_purchase_manager'))]"/>
+        </record>
+    </data>
+
+    <data noupdate="1">
+        <!-- Record Rules -->
+
+        <!-- Restrict VSR to Van POS config -->
+        <record id="rule_pos_config_vsr" model="ir.rule">
+            <field name="name">VSR Allowed POS Configs</field>
+            <field name="model_id" ref="point_of_sale.model_pos_config"/>
+            <field name="groups" eval="[(4, ref('group_vsr'))]"/>
+            <field name="domain_force">[('name', 'ilike', 'Van')]</field>
+        </record>
+
+        <!-- Restrict Store Cashier to Store POS config -->
+        <record id="rule_pos_config_store_cashier" model="ir.rule">
+            <field name="name">Store Cashier Allowed POS Configs</field>
+            <field name="model_id" ref="point_of_sale.model_pos_config"/>
+            <field name="groups" eval="[(4, ref('group_store_cashier'))]"/>
+            <field name="domain_force">[('name', 'not ilike', 'Van')]</field>
+        </record>
+
+        <!-- Restrict VSR from central WH/Main location -->
+        <record id="rule_vsr_exclude_central_stock" model="ir.rule">
+            <field name="name">VSR Exclude Central Stock Location</field>
+            <field name="model_id" ref="stock.model_stock_location"/>
+            <field name="groups" eval="[(4, ref('group_vsr'))]"/>
+            <field name="domain_force">[('complete_name', '!=', 'WH/Main')]</field>
+        </record>
+
+        <!-- Prevent VSR from seeing purchase orders -->
+        <record id="rule_vsr_purchase_orders" model="ir.rule">
+            <field name="name">VSR Exclude Purchase Orders</field>
+            <field name="model_id" ref="purchase.model_purchase_order"/>
+            <field name="groups" eval="[(4, ref('group_vsr'))]"/>
+            <field name="domain_force">[(0, '=', 1)]</field>
+        </record>
+    </data>
+</odoo>

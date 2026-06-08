@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Brewery Packaging UoM Category -->
+        <record id="uom_categ_brewery" model="uom.category">
+            <field name="name">Brewery Packaging</field>
+        </record>
+
+        <!-- UoMs within Brewery Packaging -->
+        <record id="uom_bottle" model="uom.uom">
+            <field name="name">Bottle(s)</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">reference</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_crate" model="uom.uom">
+            <field name="name">Crate x24</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">24.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_pallet" model="uom.uom">
+            <field name="name">Pallet (40 Crates)</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">960.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <!-- 01. Liquid Contents Category -->
+        <record id="product_category_liquid" model="product.category">
+            <field name="parent_id" ref="product.product_category_all"/>
+            <field name="name">01. Liquid Contents</field>
+            <field name="property_cost_method">standard</field>
+            <field name="property_valuation">real_time</field>
+        </record>
+
+        <!-- 02. Returnable Empties Category -->
+        <record id="product_category_empties" model="product.category">
+            <field name="parent_id" ref="product.product_category_all"/>
+            <field name="name">02. Returnable Empties</field>
+            <field name="property_cost_method">standard</field>
+            <field name="property_valuation">real_time</field>
+        </record>
+
+        <!-- 03. Distribution Kits Category -->
+        <record id="product_category_kits" model="product.category">
+            <field name="parent_id" ref="product.product_category_all"/>
+            <field name="name">03. Distribution Kits</field>
+            <field name="property_cost_method">standard</field>
+            <field name="property_valuation">real_time</field>
+        </record>
+
+        <!-- Products -->
+        <!-- Guinness Liquid Liquid (Single) -->
+        <record id="product_guinness_liquid_single" model="product.product">
+            <field name="name">Guinness Liquid Liquid (Single)</field>
+            <field name="categ_id" ref="product_category_liquid"/>
+            <field name="standard_price">100.0</field>
+            <field name="list_price">150.0</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="available_in_pos" eval="False"/>
+            <field name="uom_id" ref="uom_bottle"/>
+            <field name="uom_po_id" ref="uom_bottle"/>
+        </record>
+
+        <!-- Empty Bottle Depot Asset -->
+        <record id="product_empty_bottle_asset" model="product.product">
+            <field name="name">Empty Bottle Depot Asset</field>
+            <field name="categ_id" ref="product_category_empties"/>
+            <field name="standard_price">50.0</field>
+            <field name="list_price">50.0</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="uom_id" ref="uom_bottle"/>
+            <field name="uom_po_id" ref="uom_bottle"/>
+        </record>
+
+        <!-- Empty Crate Depot Asset -->
+        <record id="product_empty_crate_asset" model="product.product">
+            <field name="name">Empty Crate Depot Asset</field>
+            <field name="categ_id" ref="product_category_empties"/>
+            <field name="standard_price">500.0</field>
+            <field name="list_price">500.0</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="available_in_pos" eval="True"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <!-- Parent Product Asset: Guinness Crate 1x24 (Complete Bundle) -->
+        <record id="product_tmpl_guinness_case_24" model="product.template">
+            <field name="name">Guinness Crate 1x24</field>
+            <field name="categ_id" ref="product_category_kits"/>
+            <field name="type">consu</field>
+            <field name="available_in_pos" eval="True"/>
+            <field name="uom_id" ref="uom_crate"/>
+            <field name="uom_po_id" ref="uom_crate"/>
+            <field name="is_brewery" eval="True"/>
+            <field name="brewery_liquid_price">150.0</field>
+            <field name="brewery_liquid_cost">100.0</field>
+            <field name="brewery_liquid_qty">24.0</field>
+            <field name="brewery_bottle_price">50.0</field>
+            <field name="brewery_bottle_cost">50.0</field>
+            <field name="brewery_bottle_qty">24.0</field>
+            <field name="brewery_crate_price">500.0</field>
+            <field name="brewery_crate_cost">500.0</field>
+            <field name="liquid_product_id" ref="product_guinness_liquid_single"/>
+            <field name="bottle_product_id" ref="product_empty_bottle_asset"/>
+            <field name="crate_product_id" ref="product_empty_crate_asset"/>
+        </record>
+    </data>
+</odoo>

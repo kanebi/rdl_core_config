@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Customer Account payment method -->
+        <record id="payment_method_customer_account" model="pos.payment.method">
+            <field name="name">Customer Account</field>
+            <field name="split_transactions" eval="True"/>
+            <field name="sequence">2</field>
+        </record>
+    </data>
+</odoo>

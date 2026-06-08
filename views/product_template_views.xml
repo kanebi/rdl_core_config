@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_only_form_view_inherit_brewery" model="ir.ui.view">
+        <field name="name">product.template.only.form.inherit.brewery</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <!-- Add is_brewery option checkbox -->
+            <xpath expr="//div[@name='options']" position="inside">
+                <span class="d-inline-block">
+                    <field name="is_brewery"/>
+                    <label for="is_brewery"/>
+                </span>
+            </xpath>
+            
+            <!-- Brewery Components page inside product notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page name="brewery_components" string="Brewery Components" invisible="not is_brewery">
+                    <group>
+                        <group string="Liquid Component" name="group_liquid">
+                            <field name="brewery_liquid_price" required="is_brewery"/>
+                            <field name="brewery_liquid_cost" required="is_brewery"/>
+                            <field name="brewery_liquid_qty" required="is_brewery"/>
+                            <field name="liquid_product_id" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Empty Bottle Component" name="group_bottle">
+                            <field name="brewery_bottle_price" required="is_brewery"/>
+                            <field name="brewery_bottle_cost" required="is_brewery"/>
+                            <field name="brewery_bottle_qty" required="is_brewery"/>
+                            <field name="bottle_product_id" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Empty Crate Component" name="group_crate">
+                            <field name="brewery_crate_price" required="is_brewery"/>
+                            <field name="brewery_crate_cost" required="is_brewery"/>
+                            <field name="crate_product_id" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Full Bottle Bundle" name="group_full_bottle">
+                            <field name="full_bottle_product_id" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

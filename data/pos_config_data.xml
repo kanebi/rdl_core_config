@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Store POS Profile -->
+        <record id="pos_config_store" model="pos.config">
+            <field name="name">Store POS Profile</field>
+            <field name="payment_method_ids" eval="[(4, ref('rdl_core_config.payment_method_customer_account'))]"/>
+        </record>
+
+        <!-- Van POS Profile -->
+        <record id="pos_config_van" model="pos.config">
+            <field name="name">Van POS Profile</field>
+            <field name="payment_method_ids" eval="[(4, ref('rdl_core_config.payment_method_customer_account'))]"/>
+        </record>
+    </data>
+</odoo>

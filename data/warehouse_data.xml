@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Physical view location for Vans sales channels -->
+        <record id="stock_location_vans" model="stock.location">
+            <field name="name">Vans</field>
+            <field name="usage">view</field>
+        </record>
+
+        <!-- Stock location for Van-001 mobile VSR -->
+        <record id="stock_location_van_001" model="stock.location">
+            <field name="name">Van-001</field>
+            <field name="usage">internal</field>
+            <field name="location_id" ref="stock_location_vans"/>
+        </record>
+
+        <!-- Quarantine location for Trade Rejects -->
+        <record id="stock_location_damaged_scrap" model="stock.location">
+            <field name="name">Damaged_Scrap</field>
+            <field name="usage">internal</field>
+            <field name="scrap_location" eval="True"/>
+        </record>
+    </data>
+</odoo>
