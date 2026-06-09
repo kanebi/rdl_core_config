@@ -28,24 +28,7 @@ class PosConfig(models.Model):
             return domain
             
         # Determine stock location to filter by
-        filter_location = False
-        if self.stock_location_id:
-            filter_location = self.stock_location_id
-        else:
-            is_van_pos = False
-            if self.name and 'Van' in self.name:
-                is_van_pos = True
-            else:
-                src_loc = self.picking_type_id.default_location_src_id
-                if src_loc:
-                    parent = src_loc
-                    while parent:
-                        if parent.name == 'Vans':
-                            is_van_pos = True
-                            break
-                        parent = parent.location_id
-            if is_van_pos:
-                filter_location = self.picking_type_id.default_location_src_id
+        filter_location = self.stock_location_id
                     
         if filter_location:
             # Find all POS-enabled products using the base domain (including global products)

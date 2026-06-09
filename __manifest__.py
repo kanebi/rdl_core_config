@@ -15,6 +15,8 @@ for Odoo 18 Community.
         'stock',
         'point_of_sale',
         'mrp',
+        'l10n_ng',
+        'product_expiry',
     ],
     'data': [
         'security/security_groups.xml',
@@ -28,6 +30,7 @@ for Odoo 18 Community.
         'views/purchase_order_views.xml',
         'views/product_template_views.xml',
         'views/pos_config_views.xml',
+        'wizard/bank_statement_import_wizard_views.xml',
     ],
     'assets': {
         'point_of_sale._assets_pos': [

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from . import models
+from . import wizard
 from odoo import api, SUPERUSER_ID
 
 def post_init_hook(env):
@@ -31,21 +32,37 @@ def post_init_hook(env):
     except Exception:
         pass
 
-    # 2. Global permissions/groups setup (Storage Locations and Consignment)
+    # 2. Global permissions/groups setup (Storage Locations, Consignment, Multi-currency, Lots/Serial Numbers)
     try:
         with env.cr.savepoint():
             group_user = env.ref('base.group_user')
             multi_loc_group = env.ref('stock.group_stock_multi_locations')
             consignment_group = env.ref('stock.group_tracking_owner')
+            multi_curr_group = env.ref('base.group_multi_currency')
+            lot_group = env.ref('stock.group_production_lot')
             if multi_loc_group not in group_user.implied_ids:
                 group_user.write({'implied_ids': [(4, multi_loc_group.id)]})
             if consignment_group not in group_user.implied_ids:
                 group_user.write({'implied_ids': [(4, consignment_group.id)]})
+            if multi_curr_group and multi_curr_group in group_user.implied_ids:
+                group_user.write({'implied_ids': [(3, multi_curr_group.id)]})
+            if lot_group and lot_group not in group_user.implied_ids:
+                group_user.write({'implied_ids': [(4, lot_group.id)]})
     except Exception:
         pass
 
     # 3. Loop over all companies and set up warehouses, locations, POS profiles, journals, and opening balances
     for company in env['res.company'].search([]):
+        # If no chart of accounts is configured, install the Nigerian accounting template
+        if not company.chart_template:
+            country_ng = env['res.country'].search([('code', '=', 'NG')], limit=1)
+            if country_ng:
+                company.write({'country_id': country_ng.id})
+            try:
+                env['account.chart.template'].try_loading('ng', company)
+            except Exception:
+                pass
+
         # Skip companies without chart template (not accounting enabled)
         if not company.chart_template:
             continue
@@ -174,9 +191,6 @@ def post_init_hook(env):
                         'company_id': company.id,
                     })
                     
-                if store_cash_pm not in store_config.payment_method_ids:
-                    store_config.write({'payment_method_ids': [(4, store_cash_pm.id)]})
-                    
                 van_cash_journal = env['account.journal'].search([
                     ('code', '=', 'CSHV1'),
                     ('company_id', '=', company.id)
@@ -200,9 +214,6 @@ def post_init_hook(env):
                         'company_id': company.id,
                     })
                     
-                if van_cash_pm not in van_config.payment_method_ids:
-                    van_config.write({'payment_method_ids': [(4, van_cash_pm.id)]})
-                    
                 # Customer Account payment method and journal
                 cust_pm = env['pos.payment.method'].search([
                     ('name', '=', 'Customer Account'),
@@ -215,11 +226,74 @@ def post_init_hook(env):
                         'sequence': 2,
                         'company_id': company.id,
                     })
-                    
-                if cust_pm not in store_config.payment_method_ids:
-                    store_config.write({'payment_method_ids': [(4, cust_pm.id)]})
-                if cust_pm not in van_config.payment_method_ids:
-                    van_config.write({'payment_method_ids': [(4, cust_pm.id)]})
+
+                # 1. Seerbit Store Journal and Payment Method Setup
+                seerbit_store_journal = env['account.journal'].search([
+                    ('code', '=', 'SEER'),
+                    ('company_id', '=', company.id)
+                ], limit=1)
+                if not seerbit_store_journal:
+                    seerbit_store_journal = env['account.journal'].search([
+                        ('name', '=', 'Seerbit'),
+                        ('company_id', '=', company.id)
+                    ], limit=1)
+                if not seerbit_store_journal:
+                    seerbit_store_journal = env['account.journal'].with_company(company).create({
+                        'name': 'Seerbit',
+                        'type': 'bank',
+                        'code': 'SEER',
+                        'company_id': company.id,
+                    })
+
+                seerbit_store_pm = env['pos.payment.method'].search([
+                    ('name', '=', 'Seerbit POS'),
+                    ('company_id', '=', company.id)
+                ], limit=1)
+                if not seerbit_store_pm:
+                    seerbit_store_pm = env['pos.payment.method'].with_company(company).create({
+                        'name': 'Seerbit POS',
+                        'journal_id': seerbit_store_journal.id,
+                        'company_id': company.id,
+                    })
+
+                # 2. Seerbit Van Journal and Payment Method Setup
+                seerbit_van_journal = env['account.journal'].search([
+                    ('code', '=', 'SEERV'),
+                    ('company_id', '=', company.id)
+                ], limit=1)
+                if not seerbit_van_journal:
+                    seerbit_van_journal = env['account.journal'].search([
+                        ('name', '=', 'Seerbit Van-001'),
+                        ('company_id', '=', company.id)
+                    ], limit=1)
+                if not seerbit_van_journal:
+                    seerbit_van_journal = env['account.journal'].with_company(company).create({
+                        'name': 'Seerbit Van-001',
+                        'type': 'bank',
+                        'code': 'SEERV',
+                        'company_id': company.id,
+                    })
+
+                seerbit_van_pm = env['pos.payment.method'].search([
+                    ('name', '=', 'Seerbit Van-001'),
+                    ('company_id', '=', company.id)
+                ], limit=1)
+                if not seerbit_van_pm:
+                    seerbit_van_pm = env['pos.payment.method'].with_company(company).create({
+                        'name': 'Seerbit Van-001',
+                        'journal_id': seerbit_van_journal.id,
+                        'company_id': company.id,
+                    })
+
+                # Set exactly Cash, Customer Account, and Seerbit payment methods
+                if store_cash_pm and cust_pm and seerbit_store_pm:
+                    store_config.write({
+                        'payment_method_ids': [(6, 0, [store_cash_pm.id, cust_pm.id, seerbit_store_pm.id])]
+                    })
+                if van_cash_pm and cust_pm and seerbit_van_pm:
+                    van_config.write({
+                        'payment_method_ids': [(6, 0, [van_cash_pm.id, cust_pm.id, seerbit_van_pm.id])]
+                    })
                     
                 cust_journal = env['account.journal'].search([
                     ('name', '=', 'Customer Account'),
@@ -246,10 +320,12 @@ def post_init_hook(env):
                         'country': country_ng_id,
                     })
                     
-                zen_partner_bank = env['res.partner.bank'].search([
+                zen_partner_bank = env['res.partner.bank'].with_context(active_test=False).search([
                     ('acc_number', '=', '1011234567'),
                     ('partner_id', '=', company.partner_id.id)
                 ], limit=1)
+                if zen_partner_bank and not zen_partner_bank.active:
+                    zen_partner_bank.write({'active': True})
                 if not zen_partner_bank:
                     zen_partner_bank = env['res.partner.bank'].with_company(company).create({
                         'acc_number': '1011234567',
@@ -280,10 +356,12 @@ def post_init_hook(env):
                         'country': country_ng_id,
                     })
                     
-                gtb_partner_bank = env['res.partner.bank'].search([
+                gtb_partner_bank = env['res.partner.bank'].with_context(active_test=False).search([
                     ('acc_number', '=', '0112345678'),
                     ('partner_id', '=', company.partner_id.id)
                 ], limit=1)
+                if gtb_partner_bank and not gtb_partner_bank.active:
+                    gtb_partner_bank.write({'active': True})
                 if not gtb_partner_bank:
                     gtb_partner_bank = env['res.partner.bank'].with_company(company).create({
                         'acc_number': '0112345678',
@@ -318,7 +396,10 @@ def post_init_hook(env):
                     updates[gtb_acc] = (250000.0, 0.0)
                     
                 if updates:
-                    company.with_company(company)._update_opening_move(updates)
+                    try:
+                        company.with_company(company)._update_opening_move(updates)
+                    except Exception:
+                        pass
                     
                 # Replenishment routes
                 route_name = 'Replenish Van-001 from WH/Main'
@@ -372,20 +453,65 @@ def post_init_hook(env):
                     if company.currency_id != ngn_currency:
                         company.write({'currency_id': ngn_currency.id})
                         
-                company.write({'account_use_credit_limit': True})
+                company.write({
+                    'account_use_credit_limit': True,
+                    'anglo_saxon_accounting': True,
+                })
                 env['ir.default'].set(
                     'res.partner',
                     'credit_limit',
                     5000000.0,
                     company_id=company.id
                 )
+
+                # Assign stock locations to POS profiles
+                if store_config and warehouse.lot_stock_id:
+                    store_config.write({'stock_location_id': warehouse.lot_stock_id.id})
+                if van_config and van_loc:
+                    van_config.write({'stock_location_id': van_loc.id})
+
+                # Discover stock valuation, input/output accounts, and journal for this company
+                acc_valuation = env['account.account'].search([('company_ids', 'in', company.id), ('code', '=', '110100')], limit=1)
+                acc_input = env['account.account'].search([('company_ids', 'in', company.id), ('code', '=', '110200')], limit=1)
+                acc_output = env['account.account'].search([('company_ids', 'in', company.id), ('code', '=', '110300')], limit=1)
+                
+                if not acc_valuation:
+                    acc_valuation = env['account.account'].search([('company_ids', 'in', company.id), ('name', 'ilike', 'Stock Valuation')], limit=1)
+                if not acc_input:
+                    acc_input = env['account.account'].search([('company_ids', 'in', company.id), ('name', 'ilike', 'Interim (Received)')], limit=1)
+                if not acc_output:
+                    acc_output = env['account.account'].search([('company_ids', 'in', company.id), ('name', 'ilike', 'Interim (Delivered)')], limit=1)
+                    
+                journal = env['account.journal'].search([('company_id', '=', company.id), ('code', '=', 'STJ')], limit=1)
+                if not journal:
+                    journal = env['account.journal'].search([('company_id', '=', company.id), ('type', '=', 'general')], limit=1)
+
+                if acc_valuation and acc_input and acc_output and journal:
+                    for cat_ref in [
+                        'rdl_core_config.product_category_liquid',
+                        'rdl_core_config.product_category_empties',
+                        'rdl_core_config.product_category_kits',
+                        'product.product_category_all'
+                    ]:
+                        cat = env.ref(cat_ref, raise_if_not_found=False)
+                        if cat:
+                            cat.with_company(company).write({
+                                'property_stock_valuation_account_id': acc_valuation.id,
+                                'property_stock_account_input_categ_id': acc_input.id,
+                                'property_stock_account_output_categ_id': acc_output.id,
+                                'property_stock_journal': journal.id,
+                                'property_valuation': 'real_time'
+                            })
         except Exception:
             pass
 
-    # 4. Configure 0% Default Taxes for all companies (Root configuration)
+    # 4. Configure Default Taxes for all companies (Root configuration)
     try:
         for company in env['res.company'].search([]):
+            if not company.chart_template:
+                continue
             with env.cr.savepoint():
+                # Ensure 0% sales tax and 0% purchase tax groups exist
                 country = company.account_fiscal_country_id or company.country_id
                 tax_group = env['account.tax.group'].search([
                     ('company_id', '=', company.id),
@@ -401,6 +527,7 @@ def post_init_hook(env):
                         'country_id': country.id if country else False,
                     })
 
+                # Find or create 0% Sales Tax
                 tax_sale = env['account.tax'].search([
                     ('company_id', '=', company.id),
                     ('type_tax_use', '=', 'sale'),
@@ -420,18 +547,27 @@ def post_init_hook(env):
                             'company_id': company.id,
                             'tax_group_id': tax_group.id,
                         })
-                
-                tax_purchase = env['account.tax'].search([
+
+                # Find 7.5% Purchase VAT
+                vat_purchase = env['account.tax'].search([
                     ('company_id', '=', company.id),
                     ('type_tax_use', '=', 'purchase'),
-                    ('amount', '=', 0.0),
+                    ('amount', '=', 7.5),
                 ], limit=1)
-                if not tax_purchase:
+                
+                # If not found, fall back to 0% Purchase Tax
+                if not vat_purchase:
+                    vat_purchase = env['account.tax'].search([
+                        ('company_id', '=', company.id),
+                        ('type_tax_use', '=', 'purchase'),
+                        ('amount', '=', 0.0),
+                    ], limit=1)
+                if not vat_purchase:
                     xml_tax = env.ref('rdl_core_config.tax_purchase_0', raise_if_not_found=False)
                     if xml_tax and xml_tax.company_id == company:
-                        tax_purchase = xml_tax
+                        vat_purchase = xml_tax
                     else:
-                        tax_purchase = env['account.tax'].create({
+                        vat_purchase = env['account.tax'].create({
                             'name': '0% Purchase Tax',
                             'amount': 0.0,
                             'amount_type': 'percent',
@@ -440,10 +576,11 @@ def post_init_hook(env):
                             'company_id': company.id,
                             'tax_group_id': tax_group.id,
                         })
-                
+
+                # Write defaults: 0% VAT on Sales, 7.5% VAT on Purchases (POs)
                 company.write({
                     'account_sale_tax_id': tax_sale.id,
-                    'account_purchase_tax_id': tax_purchase.id,
+                    'account_purchase_tax_id': vat_purchase.id,
                 })
     except Exception:
         pass

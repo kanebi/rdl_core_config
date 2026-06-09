@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="bank_statement_import_wizard_view_form" model="ir.ui.view">
+        <field name="name">bank.statement.import.wizard.view.form</field>
+        <field name="model">bank.statement.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import &amp; Reconcile Nigerian Statements">
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Upload your bank statement export in CSV format. The wizard will automatically parse transaction records, create bank statement lines, and match them with outstanding invoices, bills, or payments in the database.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="journal_id" options="{'no_create': True}"/>
+                            <field name="bank_type"/>
+                        </group>
+                        <group>
+                            <field name="file" filename="file_name"/>
+                            <field name="file_name" invisible="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Import &amp; Reconcile" name="action_import_and_reconcile" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_bank_statement_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import &amp; Reconcile Nigerian Statements</field>
+        <field name="res_model">bank.statement.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu item inside Invoicing/Accounting menus -->
+    <menuitem id="menu_bank_statement_import_wizard"
+              name="Import Nigerian Statements"
+              action="action_bank_statement_import_wizard"
+              parent="account.menu_finance_receivables"
+              sequence="110"/>
+</odoo>
