@@ -4,6 +4,19 @@ import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_d
 import { _t } from "@web/core/l10n/translation";
 
 patch(ProductScreen.prototype, {
+    get productsToDisplay() {
+        const originalList = super.productsToDisplay;
+        // Hide storable items if they have zero or negative stock
+        return originalList.filter((product) => {
+            const isStorable = product.is_storable || (product.raw && product.raw.is_storable);
+            if (isStorable) {
+                const qty = product.raw ? product.raw.pos_qty_available : product.pos_qty_available;
+                return qty !== undefined && qty > 0;
+            }
+            return true; // Keep consumables and services
+        });
+    },
+
     async addProductToOrder(product) {
         if (this.pos.config.negative_stock_alert && (product.is_storable || product.raw.is_storable)) {
             const qty = product.raw.pos_qty_available;

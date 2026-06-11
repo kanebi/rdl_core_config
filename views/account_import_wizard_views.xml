@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_import_wizard_form" model="ir.ui.view">
+        <field name="name">account.import.wizard.form</field>
+        <field name="model">account.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Chart of Accounts">
+                <group>
+                    <field name="file_name" invisible="1"/>
+                    <field name="excel_file" filename="file_name"/>
+                    <field name="sheet_index"/>
+                    <field name="header_row_index"/>
+                </group>
+                <footer>
+                    <button string="Import" name="action_import_accounts" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_account_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import COA</field>
+        <field name="res_model">account.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Inject Button into account.account tree view header -->
+    <record id="account_account_list_view_inherit_rdl_import" model="ir.ui.view">
+        <field name="name">account.account.list.inherit.rdl.import</field>
+        <field name="model">account.account</field>
+        <field name="inherit_id" ref="account.view_account_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <header>
+                    <button name="%(action_account_import_wizard)d" string="Import COA" type="action" class="btn-primary" display="always"/>
+                </header>
+            </xpath>
+        </field>
+    </record>
+</odoo>

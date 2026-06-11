@@ -18,9 +18,13 @@ for Odoo 18 Community.
         'l10n_ng',
         'product_expiry',
     ],
+    'external_dependencies': {
+        'python': ['pandas'],
+    },
     'data': [
         'security/security_groups.xml',
         'security/ir.model.access.csv',
+        'data/stock_package_type_data.xml',
         'data/partner_data.xml',
         'data/warehouse_data.xml',
         'data/product_category_data.xml',
@@ -31,6 +35,10 @@ for Odoo 18 Community.
         'views/product_template_views.xml',
         'views/pos_config_views.xml',
         'wizard/bank_statement_import_wizard_views.xml',
+        'wizard/product_import_wizard_views.xml',
+        'views/inventory_import_wizard_views.xml',
+        'views/category_import_wizard_views.xml',
+        'views/account_import_wizard_views.xml',
     ],
     'assets': {
         'point_of_sale._assets_pos': [

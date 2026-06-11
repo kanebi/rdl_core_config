@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Pre-create package types for Packaged Drinks -->
+        <record id="package_type_can" model="stock.package.type">
+            <field name="name">Can</field>
+        </record>
+        <record id="package_type_plastic" model="stock.package.type">
+            <field name="name">Plastic / PET</field>
+        </record>
+        <record id="package_type_carton" model="stock.package.type">
+            <field name="name">Carton / Tetra Pak</field>
+        </record>
+    </data>
+</odoo>

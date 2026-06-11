@@ -4,23 +4,30 @@ from odoo import api, fields, models
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
-    is_brewery = fields.Boolean("Brewery Product", default=False)
+    is_brewery = fields.Boolean("Bottled Component", default=False)
+    is_packaged_drinks = fields.Boolean("Packaged Drinks (No Deposit)", default=False)
 
     type = fields.Selection(default='consu')
     is_storable = fields.Boolean(default=True)
     available_in_pos = fields.Boolean(default=True)
 
+    @api.onchange('is_brewery')
+    def _onchange_is_brewery(self):
+        if self.is_brewery:
+            self.is_packaged_drinks = False
+
+    @api.onchange('is_packaged_drinks')
+    def _onchange_is_packaged_drinks(self):
+        if self.is_packaged_drinks:
+            self.is_brewery = False
+
     def _default_route_ids(self):
-        route = self.env['stock.route'].search([
-            ('name', '=', 'Replenish Van-001 from WH/Main'),
-            ('company_id', '=', self.env.company.id)
-        ], limit=1)
-        if not route:
-            route = self.env['stock.route'].search([
-                ('name', '=', 'Replenish Van-001 from WH/Main')
-            ], limit=1)
-        if route:
-            return [(4, route.id)]
+        routes = self.env['stock.route'].search([
+            ('name', 'in', ['Buy', 'Replenish Van-001 from WH/Main']),
+            '|', ('company_id', '=', self.env.company.id), ('company_id', '=', False)
+        ])
+        if routes:
+            return [(6, 0, routes.ids)]
         return False
 
     route_ids = fields.Many2many(default=_default_route_ids)

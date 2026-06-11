@@ -1,2 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_bank_statement_import_wizard,bank.statement.import.wizard,model_bank_statement_import_wizard,account.group_account_invoice,1,1,1,1
+access_product_import_wizard,product.import.wizard,model_product_import_wizard,base.group_user,1,1,1,1
+access_inventory_import_wizard,inventory.import.wizard,model_inventory_import_wizard,base.group_user,1,1,1,1
+access_category_import_wizard,category.import.wizard,model_category_import_wizard,base.group_user,1,1,1,1
+access_account_import_wizard,account.import.wizard,model_account_import_wizard,base.group_user,1,1,1,1

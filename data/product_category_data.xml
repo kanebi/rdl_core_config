@@ -14,8 +14,48 @@
             <field name="rounding">1.0</field>
         </record>
 
+        <record id="uom_crate_12" model="uom.uom">
+            <field name="name">Crate x12</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">12.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
         <record id="uom_crate" model="uom.uom">
             <field name="name">Crate x24</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">24.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_case_12" model="uom.uom">
+            <field name="name">Case x12</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">12.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_case_24" model="uom.uom">
+            <field name="name">Case x24</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">24.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_carton_12" model="uom.uom">
+            <field name="name">Carton x12</field>
+            <field name="category_id" ref="uom_categ_brewery"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">12.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_carton_24" model="uom.uom">
+            <field name="name">Carton x24</field>
             <field name="category_id" ref="uom_categ_brewery"/>
             <field name="uom_type">bigger</field>
             <field name="factor_inv">24.0</field>
@@ -27,6 +67,50 @@
             <field name="category_id" ref="uom_categ_brewery"/>
             <field name="uom_type">bigger</field>
             <field name="factor_inv">960.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <!-- Can Packaging UoM Category -->
+        <record id="uom_categ_can" model="uom.category">
+            <field name="name">Can Packaging</field>
+        </record>
+
+        <record id="uom_can" model="uom.uom">
+            <field name="name">Can(s)</field>
+            <field name="category_id" ref="uom_categ_can"/>
+            <field name="uom_type">reference</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_can_carton_12" model="uom.uom">
+            <field name="name">Carton x12 (Cans)</field>
+            <field name="category_id" ref="uom_categ_can"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">12.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_can_carton_24" model="uom.uom">
+            <field name="name">Carton x24 (Cans)</field>
+            <field name="category_id" ref="uom_categ_can"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">24.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_can_case_12" model="uom.uom">
+            <field name="name">Case x12 (Cans)</field>
+            <field name="category_id" ref="uom_categ_can"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">12.0</field>
+            <field name="rounding">1.0</field>
+        </record>
+
+        <record id="uom_can_case_24" model="uom.uom">
+            <field name="name">Case x24 (Cans)</field>
+            <field name="category_id" ref="uom_categ_can"/>
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">24.0</field>
             <field name="rounding">1.0</field>
         </record>
 

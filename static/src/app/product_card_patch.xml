@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="rdl_core_config.ProductCard" t-inherit="point_of_sale.ProductCard" t-inherit-mode="extension">
+        <xpath expr="//article" position="inside">
+            <t t-if="props.product">
+                <t t-set="storable" t-value="props.product.is_storable || (props.product.raw and props.product.raw.is_storable)"/>
+                <t t-set="qty" t-value="props.product.raw ? props.product.raw.pos_qty_available : props.product.pos_qty_available"/>
+                <t t-if="storable and qty != undefined and qty &lt;= 0">
+                    <div class="position-absolute top-0 end-0 m-1">
+                        <span class="badge bg-danger shadow-sm border border-white">Out of stock</span>
+                    </div>
+                </t>
+            </t>
+        </xpath>
+    </t>
+</templates>

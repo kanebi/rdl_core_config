@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_inventory_import_wizard_form" model="ir.ui.view">
+        <field name="name">inventory.import.wizard.form</field>
+        <field name="model">inventory.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Opening Inventory">
+                <group>
+                    <field name="file_name" invisible="1"/>
+                    <field name="excel_file" filename="file_name"/>
+                    <field name="sheet_index"/>
+                    <field name="header_row_index"/>
+                </group>
+                <footer>
+                    <button string="Import" name="action_import_inventory" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_inventory_import_wizard" model="ir.actions.act_window">
+        <field name="name">Load Stock</field>
+        <field name="res_model">inventory.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Inject Button into stock.quant tree view header -->
+    <record id="view_stock_quant_tree_inventory_editable_inherit_import" model="ir.ui.view">
+        <field name="name">stock.quant.inventory.tree.inherit.rdl.import</field>
+        <field name="model">stock.quant</field>
+        <field name="inherit_id" ref="stock.view_stock_quant_tree_inventory_editable"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <header>
+                    <button name="%(action_inventory_import_wizard)d" string="Load Stock" type="action" class="btn-primary" display="always"/>
+                </header>
+            </xpath>
+        </field>
+    </record>
+</odoo>

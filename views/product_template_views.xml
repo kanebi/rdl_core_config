@@ -11,6 +11,10 @@
                     <field name="is_brewery"/>
                     <label for="is_brewery"/>
                 </span>
+                <span class="d-inline-block">
+                    <field name="is_packaged_drinks"/>
+                    <label for="is_packaged_drinks"/>
+                </span>
             </xpath>
             
             <!-- Brewery Components page inside product notebook -->
