@@ -19,7 +19,6 @@ for Odoo 18 Community.
         'product_expiry',
     ],
     'external_dependencies': {
-        'python': ['pandas'],
     },
     'data': [
         'security/security_groups.xml',
