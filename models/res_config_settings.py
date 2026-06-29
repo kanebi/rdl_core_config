@@ -12,12 +12,12 @@ class ResConfigSettings(models.TransientModel):
     )
 
     brewery_default_crate_deposit = fields.Float(
-        related='company_id.brewery_default_crate_deposit',
-        readonly=False,
+        config_parameter='rdl_core_config.brewery_default_crate_deposit',
         string="Default Crate Deposit",
+        default=2300.0,
     )
     brewery_default_bottle_deposit = fields.Float(
-        related='company_id.brewery_default_bottle_deposit',
-        readonly=False,
+        config_parameter='rdl_core_config.brewery_default_bottle_deposit',
         string="Default Bottle Deposit",
+        default=2700.0,
     )

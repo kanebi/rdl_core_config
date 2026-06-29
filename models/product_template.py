@@ -15,9 +15,9 @@ class ProductTemplate(models.Model):
     def _onchange_is_brewery(self):
         if self.is_brewery:
             self.is_packaged_drinks = False
-            company = self.company_id or self.env.company
-            default_crate = getattr(company, 'brewery_default_crate_deposit', 2300.0) or 2300.0
-            default_bottle_total = getattr(company, 'brewery_default_bottle_deposit', 2700.0) or 2700.0
+            ICPSudo = self.env['ir.config_parameter'].sudo()
+            default_crate = float(ICPSudo.get_param('rdl_core_config.brewery_default_crate_deposit', 2300.0) or 2300.0)
+            default_bottle_total = float(ICPSudo.get_param('rdl_core_config.brewery_default_bottle_deposit', 2700.0) or 2700.0)
             
             qty = self.brewery_liquid_qty or 24.0
             if qty <= 0.0:
@@ -97,12 +97,9 @@ class ProductTemplate(models.Model):
         self.brewery_liquid_qty = self.brewery_bottle_qty
 
     def _get_brewery_pricing_values(self, vals, template=None):
-        company = template.company_id if template else self.env.company
-        if not company:
-            company = self.env.company
-            
-        default_crate = getattr(company, 'brewery_default_crate_deposit', 2300.0) or 2300.0
-        default_bottle_total = getattr(company, 'brewery_default_bottle_deposit', 2700.0) or 2700.0
+        ICPSudo = self.env['ir.config_parameter'].sudo()
+        default_crate = float(ICPSudo.get_param('rdl_core_config.brewery_default_crate_deposit', 2300.0) or 2300.0)
+        default_bottle_total = float(ICPSudo.get_param('rdl_core_config.brewery_default_bottle_deposit', 2700.0) or 2700.0)
         
         qty = vals.get('brewery_liquid_qty')
         if qty is None:
