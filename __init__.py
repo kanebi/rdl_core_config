@@ -668,6 +668,75 @@ def post_init_hook(env):
     except Exception:
         pass
 
+    # 6. Create custom RDL role-based users
+    try:
+        with env.cr.savepoint():
+            roles_info = [
+                {
+                    'name': 'Finance User',
+                    'login': 'finance@rdltrading.com',
+                    'group_ref': 'rdl_core_config.group_finance_rdl',
+                },
+                {
+                    'name': 'Inventory Manager',
+                    'login': 'inventory@rdltrading.com',
+                    'group_ref': 'rdl_core_config.group_inventory_manager_rdl',
+                },
+                {
+                    'name': 'Operations Manager',
+                    'login': 'operations@rdltrading.com',
+                    'group_ref': 'rdl_core_config.group_operations_manager_rdl',
+                },
+                {
+                    'name': 'Store POS User',
+                    'login': 'storepos@rdltrading.com',
+                    'group_ref': 'rdl_core_config.group_store_cashier',
+                },
+                {
+                    'name': 'Van POS User',
+                    'login': 'vanpos@rdltrading.com',
+                    'group_ref': 'rdl_core_config.group_vsr',
+                },
+                {
+                    'name': 'RDL Admin',
+                    'login': 'admin@rdltrading.com',
+                    'group_ref': 'rdl_core_config.group_admin_rdl',
+                }
+            ]
+            
+            all_companies = env['res.company'].search([])
+            main_company = env['res.company'].search([], limit=1)
+            
+            for r in roles_info:
+                group = env.ref(r['group_ref'], raise_if_not_found=False)
+                if not group:
+                    _logger.warning("RDL Custom Group %s not found. Skipping user creation.", r['group_ref'])
+                    continue
+                    
+                user = env['res.users'].search([('login', '=', r['login'])], limit=1)
+                if not user:
+                    user = env['res.users'].create({
+                        'name': r['name'],
+                        'login': r['login'],
+                        'email': r['login'],
+                        'password': 'RdlTrading2026!',
+                        'company_id': main_company.id if main_company else False,
+                        'company_ids': [(6, 0, all_companies.ids)] if all_companies else False,
+                        'groups_id': [(6, 0, [group.id, env.ref('base.group_user').id])]
+                    })
+                    _logger.info("Created custom user %s with login %s", r['name'], r['login'])
+                else:
+                    user_vals = {}
+                    if group not in user.groups_id:
+                        user_vals['groups_id'] = [(4, group.id)]
+                    if all_companies and any(c not in user.company_ids for c in all_companies):
+                        user_vals['company_ids'] = [(4, c.id) for c in all_companies]
+                    if user_vals:
+                        user.write(user_vals)
+                        _logger.info("Updated custom user %s with values %s", r['name'], user_vals)
+    except Exception as e:
+        _logger.exception("Error creating custom RDL users: %s", str(e))
+
 
 
 

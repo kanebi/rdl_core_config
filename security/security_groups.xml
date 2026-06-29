@@ -1,25 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <!-- Category for custom roles -->
+        <record id="module_category_rdl_roles" model="ir.module.category">
+            <field name="name">RDL Custom Roles</field>
+            <field name="sequence">100</field>
+        </record>
+
         <!-- VSR Group -->
         <record id="group_vsr" model="res.groups">
             <field name="name">Van Sales Rep (VSR)</field>
-            <field name="category_id" ref="base.module_category_sales_point_of_sale"/>
+            <field name="category_id" ref="rdl_core_config.module_category_rdl_roles"/>
             <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
         </record>
 
         <!-- Store Cashier Group -->
         <record id="group_store_cashier" model="res.groups">
             <field name="name">Store Cashier</field>
-            <field name="category_id" ref="base.module_category_sales_point_of_sale"/>
+            <field name="category_id" ref="rdl_core_config.module_category_rdl_roles"/>
             <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
         </record>
 
         <!-- Manager Group -->
         <record id="group_manager" model="res.groups">
             <field name="name">Manager &amp; Inventory Admin</field>
-            <field name="category_id" ref="base.module_category_sales_point_of_sale"/>
+            <field name="category_id" ref="rdl_core_config.module_category_rdl_roles"/>
             <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_manager')), (4, ref('stock.group_stock_manager')), (4, ref('purchase.group_purchase_manager'))]"/>
+        </record>
+
+        <!-- Finance Custom Group -->
+        <record id="group_finance_rdl" model="res.groups">
+            <field name="name">Finance</field>
+            <field name="category_id" ref="rdl_core_config.module_category_rdl_roles"/>
+            <field name="implied_ids" eval="[(4, ref('account.group_account_user'))]"/>
+        </record>
+
+        <!-- Inventory Manager Custom Group -->
+        <record id="group_inventory_manager_rdl" model="res.groups">
+            <field name="name">Inventory Manager</field>
+            <field name="category_id" ref="rdl_core_config.module_category_rdl_roles"/>
+            <field name="implied_ids" eval="[(4, ref('stock.group_stock_manager'))]"/>
+        </record>
+
+        <!-- Operations Manager Custom Group -->
+        <record id="group_operations_manager_rdl" model="res.groups">
+            <field name="name">Operations Manager</field>
+            <field name="category_id" ref="rdl_core_config.module_category_rdl_roles"/>
+            <field name="implied_ids" eval="[(4, ref('stock.group_stock_manager')), (4, ref('purchase.group_purchase_manager')), (4, ref('sales_team.group_sale_manager'))]"/>
+        </record>
+
+        <!-- Admin Custom Group -->
+        <record id="group_admin_rdl" model="res.groups">
+            <field name="name">Admin</field>
+            <field name="category_id" ref="rdl_core_config.module_category_rdl_roles"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_system')), (4, ref('base.group_erp_manager'))]"/>
         </record>
     </data>
 
