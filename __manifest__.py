@@ -39,6 +39,8 @@ for Odoo 18 Community.
         'views/inventory_import_wizard_views.xml',
         'views/category_import_wizard_views.xml',
         'views/account_import_wizard_views.xml',
+        'views/res_config_settings_views.xml',
+        'views/product_views.xml',
     ],
     'assets': {
         'point_of_sale._assets_pos': [

@@ -673,17 +673,17 @@ def post_init_hook(env):
         with env.cr.savepoint():
             roles_info = [
                 {
-                    'name': 'Finance User',
+                    'name': 'Ann',
                     'login': 'finance@rdltrading.com',
                     'group_ref': 'rdl_core_config.group_finance_rdl',
                 },
                 {
-                    'name': 'Inventory Manager',
+                    'name': 'Ayo2',
                     'login': 'inventory@rdltrading.com',
                     'group_ref': 'rdl_core_config.group_inventory_manager_rdl',
                 },
                 {
-                    'name': 'Operations Manager',
+                    'name': 'Ayo1',
                     'login': 'operations@rdltrading.com',
                     'group_ref': 'rdl_core_config.group_operations_manager_rdl',
                 },
@@ -727,6 +727,8 @@ def post_init_hook(env):
                     _logger.info("Created custom user %s with login %s", r['name'], r['login'])
                 else:
                     user_vals = {}
+                    if user.name != r['name']:
+                        user_vals['name'] = r['name']
                     if group not in user.groups_id:
                         user_vals['groups_id'] = [(4, group.id)]
                     if all_companies and any(c not in user.company_ids for c in all_companies):

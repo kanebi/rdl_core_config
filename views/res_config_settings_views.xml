@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.rdl</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="96"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='point_of_sale']" position="inside">
+                <setting title="Brewery Settings" string="Brewery Settings" help="Set default crate and bottle values for Brewery product component calculations.">
+                    <div class="content-group">
+                        <div class="row mt16">
+                            <label for="brewery_default_crate_deposit" class="col-lg-3 o_light_label"/>
+                            <field name="brewery_default_crate_deposit"/>
+                        </div>
+                        <div class="row mt8">
+                            <label for="brewery_default_bottle_deposit" class="col-lg-3 o_light_label"/>
+                            <field name="brewery_default_bottle_deposit"/>
+                        </div>
+                    </div>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

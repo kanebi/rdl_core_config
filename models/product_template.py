@@ -11,10 +11,34 @@ class ProductTemplate(models.Model):
     is_storable = fields.Boolean(default=True)
     available_in_pos = fields.Boolean(default=True)
 
-    @api.onchange('is_brewery')
+    @api.onchange('is_brewery', 'list_price', 'standard_price', 'brewery_liquid_qty')
     def _onchange_is_brewery(self):
         if self.is_brewery:
             self.is_packaged_drinks = False
+            company = self.company_id or self.env.company
+            default_crate = getattr(company, 'brewery_default_crate_deposit', 2300.0) or 2300.0
+            default_bottle_total = getattr(company, 'brewery_default_bottle_deposit', 2700.0) or 2700.0
+            
+            qty = self.brewery_liquid_qty or 24.0
+            if qty <= 0.0:
+                qty = 24.0
+            
+            if not self.brewery_crate_price:
+                self.brewery_crate_price = default_crate
+            if not self.brewery_crate_cost:
+                self.brewery_crate_cost = default_crate
+                
+            if not self.brewery_bottle_price:
+                self.brewery_bottle_price = default_bottle_total / qty
+            if not self.brewery_bottle_cost:
+                self.brewery_bottle_cost = default_bottle_total / qty
+                
+            empties_price_total = self.brewery_crate_price + (self.brewery_bottle_price * qty)
+            empties_cost_total = self.brewery_crate_cost + (self.brewery_bottle_cost * qty)
+            
+            self.brewery_liquid_price = (self.list_price - empties_price_total) / qty
+            self.brewery_liquid_cost = (self.standard_price - empties_cost_total) / qty
+            self.brewery_bottle_qty = qty
 
     @api.onchange('is_packaged_drinks')
     def _onchange_is_packaged_drinks(self):
@@ -72,6 +96,71 @@ class ProductTemplate(models.Model):
     def _onchange_bottle_qty(self):
         self.brewery_liquid_qty = self.brewery_bottle_qty
 
+    def _get_brewery_pricing_values(self, vals, template=None):
+        company = template.company_id if template else self.env.company
+        if not company:
+            company = self.env.company
+            
+        default_crate = getattr(company, 'brewery_default_crate_deposit', 2300.0) or 2300.0
+        default_bottle_total = getattr(company, 'brewery_default_bottle_deposit', 2700.0) or 2700.0
+        
+        qty = vals.get('brewery_liquid_qty')
+        if qty is None:
+            qty = template.brewery_liquid_qty if template else 24.0
+        if not qty or qty <= 0.0:
+            qty = 24.0
+            
+        list_price = vals.get('list_price')
+        if list_price is None:
+            list_price = template.list_price if template else 0.0
+            
+        standard_price = vals.get('standard_price')
+        if standard_price is None:
+            standard_price = template.standard_price if template else 0.0
+            
+        # Crate price & cost (default if 0 or empty/None)
+        crate_price = vals.get('brewery_crate_price')
+        if crate_price is None:
+            crate_price = template.brewery_crate_price if template else 0.0
+        if not crate_price:
+            crate_price = default_crate
+            
+        crate_cost = vals.get('brewery_crate_cost')
+        if crate_cost is None:
+            crate_cost = template.brewery_crate_cost if template else 0.0
+        if not crate_cost:
+            crate_cost = default_crate
+            
+        # Bottle price & cost (default if 0 or empty/None)
+        bottle_price = vals.get('brewery_bottle_price')
+        if bottle_price is None:
+            bottle_price = template.brewery_bottle_price if template else 0.0
+        if not bottle_price:
+            bottle_price = default_bottle_total / qty
+            
+        bottle_cost = vals.get('brewery_bottle_cost')
+        if bottle_cost is None:
+            bottle_cost = template.brewery_bottle_cost if template else 0.0
+        if not bottle_cost:
+            bottle_cost = default_bottle_total / qty
+            
+        empties_price_total = crate_price + (bottle_price * qty)
+        empties_cost_total = crate_cost + (bottle_cost * qty)
+        
+        liquid_price = (list_price - empties_price_total) / qty
+        liquid_cost = (standard_price - empties_cost_total) / qty
+        
+        return {
+            'brewery_crate_price': crate_price,
+            'brewery_crate_cost': crate_cost,
+            'brewery_bottle_price': bottle_price,
+            'brewery_bottle_cost': bottle_cost,
+            'brewery_liquid_price': liquid_price,
+            'brewery_liquid_cost': liquid_cost,
+            'brewery_liquid_qty': qty,
+            'brewery_bottle_qty': qty,
+        }
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -80,6 +169,10 @@ class ProductTemplate(models.Model):
                 vals['brewery_bottle_qty'] = vals['brewery_liquid_qty']
             elif vals.get('brewery_bottle_qty'):
                 vals['brewery_liquid_qty'] = vals['brewery_bottle_qty']
+                
+            if vals.get('is_brewery'):
+                calc_vals = self._get_brewery_pricing_values(vals)
+                vals.update(calc_vals)
         
         templates = super(ProductTemplate, self).create(vals_list)
         for template in templates:
@@ -94,6 +187,15 @@ class ProductTemplate(models.Model):
         elif vals.get('brewery_bottle_qty'):
             vals['brewery_liquid_qty'] = vals['brewery_bottle_qty']
 
+        # If trigger fields are changed, update the pricing values first
+        recalc_fields = {'is_brewery', 'list_price', 'standard_price', 'brewery_liquid_qty', 'brewery_crate_price', 'brewery_crate_cost', 'brewery_bottle_price', 'brewery_bottle_cost'}
+        if any(f in vals for f in recalc_fields):
+            for template in self:
+                is_brewery = vals.get('is_brewery', template.is_brewery)
+                if is_brewery:
+                    calc_vals = self._get_brewery_pricing_values(vals, template=template)
+                    super(ProductTemplate, template).write(calc_vals)
+
         res = super(ProductTemplate, self).write(vals)
 
         # 1. If parent brewery fields are edited, sync child products and pricing
@@ -101,7 +203,8 @@ class ProductTemplate(models.Model):
             'name', 'is_brewery',
             'brewery_liquid_price', 'brewery_liquid_cost', 'brewery_liquid_qty',
             'brewery_bottle_price', 'brewery_bottle_cost', 'brewery_bottle_qty',
-            'brewery_crate_price', 'brewery_crate_cost'
+            'brewery_crate_price', 'brewery_crate_cost',
+            'list_price', 'standard_price'
         }
         if any(f in vals for f in brewery_fields):
             for template in self.filtered(lambda t: t.is_brewery):
