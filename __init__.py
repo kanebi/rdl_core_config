@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
 from . import models
 from . import wizard
 from odoo import api, SUPERUSER_ID
+
+_logger = logging.getLogger(__name__)
 
 def post_init_hook(env):
     # Ensure standard crate UoM has the requested name
@@ -249,12 +252,23 @@ def post_init_hook(env):
                     ('name', '=', 'Seerbit POS'),
                     ('company_id', '=', company.id)
                 ], limit=1)
+                store_term_id = f"STORE001_{company.id}"
                 if not seerbit_store_pm:
                     seerbit_store_pm = env['pos.payment.method'].with_company(company).create({
                         'name': 'Seerbit POS',
                         'journal_id': seerbit_store_journal.id,
                         'company_id': company.id,
+                        'use_payment_terminal': 'seerbit',
+                        'seerbit_terminal_id': store_term_id,
                     })
+                else:
+                    store_vals = {}
+                    if seerbit_store_pm.use_payment_terminal != 'seerbit':
+                        store_vals['use_payment_terminal'] = 'seerbit'
+                    if not seerbit_store_pm.seerbit_terminal_id:
+                        store_vals['seerbit_terminal_id'] = store_term_id
+                    if store_vals:
+                        seerbit_store_pm.write(store_vals)
 
                 # 2. Seerbit Van Journal and Payment Method Setup
                 seerbit_van_journal = env['account.journal'].search([
@@ -278,12 +292,23 @@ def post_init_hook(env):
                     ('name', '=', 'Seerbit Van-001'),
                     ('company_id', '=', company.id)
                 ], limit=1)
+                van_term_id = f"VAN001_{company.id}"
                 if not seerbit_van_pm:
                     seerbit_van_pm = env['pos.payment.method'].with_company(company).create({
                         'name': 'Seerbit Van-001',
                         'journal_id': seerbit_van_journal.id,
                         'company_id': company.id,
+                        'use_payment_terminal': 'seerbit',
+                        'seerbit_terminal_id': van_term_id,
                     })
+                else:
+                    van_vals = {}
+                    if seerbit_van_pm.use_payment_terminal != 'seerbit':
+                        van_vals['use_payment_terminal'] = 'seerbit'
+                    if not seerbit_van_pm.seerbit_terminal_id:
+                        van_vals['seerbit_terminal_id'] = van_term_id
+                    if van_vals:
+                        seerbit_van_pm.write(van_vals)
 
                 # Set exactly Cash, Customer Account, and Seerbit payment methods
                 if store_cash_pm and cust_pm and seerbit_store_pm:
@@ -293,6 +318,27 @@ def post_init_hook(env):
                 if van_cash_pm and cust_pm and seerbit_van_pm:
                     van_config.write({
                         'payment_method_ids': [(6, 0, [van_cash_pm.id, cust_pm.id, seerbit_van_pm.id])]
+                    })
+
+                # Create walk-in customers for the two POS profiles
+                walkin_store_partner = env['res.partner'].search([
+                    ('name', '=', 'Walk-in Customer (Store)'),
+                    ('company_id', '=', company.id)
+                ], limit=1)
+                if not walkin_store_partner:
+                    walkin_store_partner = env['res.partner'].with_company(company).create({
+                        'name': 'Walk-in Customer (Store)',
+                        'company_id': company.id,
+                    })
+
+                walkin_van_partner = env['res.partner'].search([
+                    ('name', '=', 'Walk-in Customer (Van)'),
+                    ('company_id', '=', company.id)
+                ], limit=1)
+                if not walkin_van_partner:
+                    walkin_van_partner = env['res.partner'].with_company(company).create({
+                        'name': 'Walk-in Customer (Van)',
+                        'company_id': company.id,
                     })
                     
                 cust_journal = env['account.journal'].search([
@@ -321,18 +367,18 @@ def post_init_hook(env):
                     })
                     
                 zen_partner_bank = env['res.partner.bank'].with_context(active_test=False).search([
-                    ('acc_number', '=', '1011234567'),
+                    ('acc_number', '=', '1311743396'),
                     ('partner_id', '=', company.partner_id.id)
                 ], limit=1)
-                if zen_partner_bank and not zen_partner_bank.active:
-                    zen_partner_bank.write({'active': True})
                 if not zen_partner_bank:
                     zen_partner_bank = env['res.partner.bank'].with_company(company).create({
-                        'acc_number': '1011234567',
+                        'acc_number': '1311743396',
                         'bank_id': zenith_bank.id,
                         'partner_id': company.partner_id.id,
                         'company_id': company.id,
                     })
+                if zen_partner_bank and not zen_partner_bank.active:
+                    zen_partner_bank.write({'active': True})
                     
                 zenith_journal = env['account.journal'].search([
                     ('code', '=', 'ZEN'),
@@ -340,66 +386,94 @@ def post_init_hook(env):
                 ], limit=1)
                 if not zenith_journal:
                     zenith_journal = env['account.journal'].with_company(company).create({
-                        'name': 'Zenith Bank',
+                        'name': 'RDL Trading Ltd — Current',
                         'type': 'bank',
                         'code': 'ZEN',
                         'bank_account_id': zen_partner_bank.id,
                         'company_id': company.id,
                     })
+                else:
+                    journal_vals = {}
+                    if zenith_journal.name != 'RDL Trading Ltd — Current':
+                        journal_vals['name'] = 'RDL Trading Ltd — Current'
+                    if zenith_journal.bank_account_id != zen_partner_bank:
+                        journal_vals['bank_account_id'] = zen_partner_bank.id
+                    if journal_vals:
+                        zenith_journal.write(journal_vals)
                     
-                # GTBank Setup
-                gtb_bank = env['res.bank'].search([('name', '=', 'Guaranty Trust Bank PLC')], limit=1)
-                if not gtb_bank:
-                    gtb_bank = env['res.bank'].create({
-                        'name': 'Guaranty Trust Bank PLC',
-                        'bic': 'GTBNKNG',
+                # Paralex Bank Setup
+                paralex_bank = env['res.bank'].search([('name', '=', 'Paralex Bank')], limit=1)
+                if not paralex_bank:
+                    paralex_bank = env['res.bank'].create({
+                        'name': 'Paralex Bank',
+                        'bic': 'PRLXNG',
                         'country': country_ng_id,
                     })
                     
-                gtb_partner_bank = env['res.partner.bank'].with_context(active_test=False).search([
-                    ('acc_number', '=', '0112345678'),
+                par_partner_bank = env['res.partner.bank'].with_context(active_test=False).search([
+                    ('acc_number', '=', '1000349758'),
                     ('partner_id', '=', company.partner_id.id)
                 ], limit=1)
-                if gtb_partner_bank and not gtb_partner_bank.active:
-                    gtb_partner_bank.write({'active': True})
-                if not gtb_partner_bank:
-                    gtb_partner_bank = env['res.partner.bank'].with_company(company).create({
-                        'acc_number': '0112345678',
-                        'bank_id': gtb_bank.id,
+                if not par_partner_bank:
+                    par_partner_bank = env['res.partner.bank'].with_company(company).create({
+                        'acc_number': '1000349758',
+                        'bank_id': paralex_bank.id,
                         'partner_id': company.partner_id.id,
                         'company_id': company.id,
                     })
+                if par_partner_bank and not par_partner_bank.active:
+                    par_partner_bank.write({'active': True})
                     
-                gtb_journal = env['account.journal'].search([
-                    ('code', '=', 'GTB'),
+                paralex_journal = env['account.journal'].search([
+                    ('code', '=', 'PRL'),
                     ('company_id', '=', company.id)
                 ], limit=1)
-                if not gtb_journal:
-                    gtb_journal = env['account.journal'].with_company(company).create({
-                        'name': 'GTBank',
-                        'type': 'bank',
-                        'code': 'GTB',
-                        'bank_account_id': gtb_partner_bank.id,
-                        'company_id': company.id,
-                    })
+                if not paralex_journal:
+                    old_gtb_journal = env['account.journal'].search([
+                        ('code', '=', 'GTB'),
+                        ('company_id', '=', company.id)
+                    ], limit=1)
+                    if old_gtb_journal:
+                        old_gtb_journal.write({
+                            'name': 'RDL Trading Ltd — Operations',
+                            'code': 'PRL',
+                            'bank_account_id': par_partner_bank.id,
+                        })
+                        paralex_journal = old_gtb_journal
+                    else:
+                        paralex_journal = env['account.journal'].with_company(company).create({
+                            'name': 'RDL Trading Ltd — Operations',
+                            'type': 'bank',
+                            'code': 'PRL',
+                            'bank_account_id': par_partner_bank.id,
+                            'company_id': company.id,
+                        })
+                else:
+                    journal_vals = {}
+                    if paralex_journal.name != 'RDL Trading Ltd — Operations':
+                        journal_vals['name'] = 'RDL Trading Ltd — Operations'
+                    if paralex_journal.bank_account_id != par_partner_bank:
+                        journal_vals['bank_account_id'] = par_partner_bank.id
+                    if journal_vals:
+                        paralex_journal.write(journal_vals)
                     
                 # Flush changes to make sure default accounts are created and linked to the journals
                 env.flush_all()
                 
                 # Opening balances updates
                 zen_acc = zenith_journal.default_account_id
-                gtb_acc = gtb_journal.default_account_id
+                prl_acc = paralex_journal.default_account_id
                 updates = {}
                 if zen_acc:
                     updates[zen_acc] = (500000.0, 0.0)
-                if gtb_acc:
-                    updates[gtb_acc] = (250000.0, 0.0)
+                if prl_acc:
+                    updates[prl_acc] = (250000.0, 0.0)
                     
                 if updates:
                     try:
                         company.with_company(company)._update_opening_move(updates)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        _logger.warning("Failed to update opening balances for company %s: %s", company.name, str(e))
                     
                 # Replenishment routes
                 route_name = 'Replenish Van-001 from WH/Main'
@@ -582,8 +656,8 @@ def post_init_hook(env):
                     'account_sale_tax_id': tax_sale.id,
                     'account_purchase_tax_id': vat_purchase.id,
                 })
-    except Exception:
-        pass
+    except Exception as e:
+        _logger.exception("Error in post_init_hook for company: %s", company.name)
 
     # 5. Ensure all existing brewery products are synced to create the new Empties kit component and BOM
     try:

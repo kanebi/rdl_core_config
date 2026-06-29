@@ -17,6 +17,7 @@ for Odoo 18 Community.
         'mrp',
         'l10n_ng',
         'product_expiry',
+        'pos_seerbit',
     ],
     'external_dependencies': {
     },
