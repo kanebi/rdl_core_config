@@ -118,7 +118,7 @@
         <record id="product_category_liquid" model="product.category">
             <field name="parent_id" ref="product.product_category_all"/>
             <field name="name">01. Liquid Contents</field>
-            <field name="property_cost_method">standard</field>
+            <field name="property_cost_method">fifo</field>
             <field name="property_valuation">real_time</field>
         </record>
 
@@ -126,7 +126,7 @@
         <record id="product_category_empties" model="product.category">
             <field name="parent_id" ref="product.product_category_all"/>
             <field name="name">02. Returnable Empties</field>
-            <field name="property_cost_method">standard</field>
+            <field name="property_cost_method">fifo</field>
             <field name="property_valuation">real_time</field>
         </record>
 
@@ -134,7 +134,7 @@
         <record id="product_category_kits" model="product.category">
             <field name="parent_id" ref="product.product_category_all"/>
             <field name="name">03. Distribution Kits</field>
-            <field name="property_cost_method">standard</field>
+            <field name="property_cost_method">fifo</field>
             <field name="property_valuation">real_time</field>
         </record>
 

@@ -789,6 +789,18 @@ def post_init_hook(env):
     except Exception as e:
         _logger.exception("Error creating custom RDL users: %s", str(e))
 
+    # 7. Update all category costing methods to FIFO
+    try:
+        with env.cr.savepoint():
+            categories = env['product.category'].search([])
+            for company in env['res.company'].search([]):
+                categories.with_company(company).write({
+                    'property_cost_method': 'fifo',
+                })
+            _logger.info("Successfully updated all product categories to FIFO costing method.")
+    except Exception as e:
+        _logger.exception("Error updating category costing methods to FIFO: %s", str(e))
+
 
 
 

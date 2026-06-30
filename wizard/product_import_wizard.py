@@ -94,18 +94,34 @@ class ProductImportWizard(models.TransientModel):
                 product_vals['categ_id'] = categ.id
                 
             if unit_packaging.lower() == 'bottle':
+                crate_price_total = safe_float(row.get('Sales Price (₦)'))
+                crate_cost_total = safe_float(row.get('Cost Price (₦)'))
+                if not crate_cost_total:
+                    crate_cost_total = safe_float(row.get('Full Crate Cost Price'))
+                
+                entry_crate_price = safe_float(row.get('Empty Crate Sales Price'))
+                entry_crate_cost = safe_float(row.get('Empty Crate Cost'))
+                entry_bottle_price = safe_float(row.get('Empty Bottle Unit Sales Price'))
+                entry_bottle_cost = safe_float(row.get('Empty Bottle Unit Cost'))
+                qty_in_crate = safe_float(row.get('Bottles in a Crate'))
+                
                 product_vals.update({
                     'is_brewery': True,
                     'is_packaged_drinks': False,
-                    'brewery_liquid_price': safe_float(row.get('Liquid Unit Sales Price')),
-                    'brewery_liquid_cost': safe_float(row.get('Liquid Unit Cost')),
-                    'brewery_liquid_qty': safe_float(row.get('Bottles in a Crate')),
-                    'brewery_bottle_price': safe_float(row.get('Empty Bottle Unit Sales Price')),
-                    'brewery_bottle_cost': safe_float(row.get('Empty Bottle Unit Cost')),
-                    'brewery_bottle_qty': safe_float(row.get('Bottles in a Crate')),
-                    'brewery_crate_price': safe_float(row.get('Empty Crate Sales Price')),
-                    'brewery_crate_cost': safe_float(row.get('Empty Crate Cost')),
+                    'list_price': crate_price_total,
+                    'standard_price': crate_cost_total,
+                    'brewery_liquid_qty': qty_in_crate,
+                    'brewery_bottle_qty': qty_in_crate,
                 })
+                
+                if entry_crate_price > 0:
+                    product_vals['brewery_crate_price'] = entry_crate_price
+                if entry_crate_cost > 0:
+                    product_vals['brewery_crate_cost'] = entry_crate_cost
+                if entry_bottle_price > 0:
+                    product_vals['brewery_bottle_price'] = entry_bottle_price
+                if entry_bottle_cost > 0:
+                    product_vals['brewery_bottle_cost'] = entry_bottle_cost
                 
                 if existing_product:
                     existing_product.write(product_vals)

@@ -36,8 +36,8 @@ class ProductTemplate(models.Model):
             empties_price_total = self.brewery_crate_price + (self.brewery_bottle_price * qty)
             empties_cost_total = self.brewery_crate_cost + (self.brewery_bottle_cost * qty)
             
-            self.brewery_liquid_price = (self.list_price - empties_price_total) / qty
-            self.brewery_liquid_cost = (self.standard_price - empties_cost_total) / qty
+            self.brewery_liquid_price = abs((self.list_price - empties_price_total) / qty)
+            self.brewery_liquid_cost = abs((self.standard_price - empties_cost_total) / qty)
             self.brewery_bottle_qty = qty
 
     @api.onchange('is_packaged_drinks')
@@ -144,8 +144,8 @@ class ProductTemplate(models.Model):
         empties_price_total = crate_price + (bottle_price * qty)
         empties_cost_total = crate_cost + (bottle_cost * qty)
         
-        liquid_price = (list_price - empties_price_total) / qty
-        liquid_cost = (standard_price - empties_cost_total) / qty
+        liquid_price = abs((list_price - empties_price_total) / qty)
+        liquid_cost = abs((standard_price - empties_cost_total) / qty)
         
         return {
             'brewery_crate_price': crate_price,
