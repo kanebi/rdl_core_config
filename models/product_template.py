@@ -207,7 +207,7 @@ class ProductTemplate(models.Model):
             for template in self.filtered(lambda t: t.is_brewery):
                 template._sync_brewery_components()
 
-        # 2. If a child's price/cost changes, update the parent pricing
+        # 2. If a child's price/cost changes, update the sub-kits (Full Bottle / Empties BOM kits)
         if 'list_price' in vals or 'standard_price' in vals:
             variants = self.mapped('product_variant_ids')
             if variants:
@@ -265,11 +265,8 @@ class ProductTemplate(models.Model):
                 'uom_po_id': target_uom.id
             }
 
-        super(ProductTemplate, self).write({
-            'list_price': total_price,
-            'standard_price': total_cost,
-            **uom_vals
-        })
+        if uom_vals:
+            super(ProductTemplate, self).write(uom_vals)
 
         # Get standard Buy route and assign to routes list
         buy_route = self.env['stock.route'].search([('name', '=', 'Buy')], limit=1)
@@ -576,18 +573,7 @@ class ProductTemplate(models.Model):
         crate_price = self.crate_product_id.list_price or 0.0
         crate_cost = self.crate_product_id.standard_price or 0.0
 
-        # Calculate totals (statically using 1.0 for empty crate quantity)
-        total_price = (
-            (liquid_price * self.brewery_liquid_qty) +
-            (bottle_price * self.brewery_bottle_qty) +
-            (crate_price * 1.0)
-        )
-        total_cost = (
-            (liquid_cost * self.brewery_liquid_qty) +
-            (bottle_cost * self.brewery_bottle_qty) +
-            (crate_cost * 1.0)
-        )
-
+        # Update parent's component cache fields (but NOT parent's list_price or standard_price)
         super(ProductTemplate, self).write({
             'brewery_liquid_price': liquid_price,
             'brewery_liquid_cost': liquid_cost,
@@ -595,8 +581,6 @@ class ProductTemplate(models.Model):
             'brewery_bottle_cost': bottle_cost,
             'brewery_crate_price': crate_price,
             'brewery_crate_cost': crate_cost,
-            'list_price': total_price,
-            'standard_price': total_cost,
         })
 
         # Also update Full Bottle price/cost if linked
@@ -604,7 +588,6 @@ class ProductTemplate(models.Model):
             self.full_bottle_product_id.product_tmpl_id.write({
                 'list_price': liquid_price + bottle_price,
                 'standard_price': liquid_cost + bottle_cost,
-                'is_brewery': False,
             })
 
         # Also update Empties price/cost if linked
@@ -612,5 +595,5 @@ class ProductTemplate(models.Model):
             self.empties_product_id.product_tmpl_id.write({
                 'list_price': (bottle_price * self.brewery_bottle_qty) + crate_price,
                 'standard_price': (bottle_cost * self.brewery_bottle_qty) + crate_cost,
-                'is_brewery': False,
             })
+

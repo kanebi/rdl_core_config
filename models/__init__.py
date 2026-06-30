@@ -4,5 +4,6 @@ from . import purchase_order
 from . import product_template
 from . import pos_config
 from . import product_product
+from . import product_category
 
 
