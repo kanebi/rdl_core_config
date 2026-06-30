@@ -33,11 +33,13 @@
         <field name="priority" eval="200"/>
         <field name="arch" type="xml">
             <list create="0" edit="0" delete="0" sample="1" duplicate="0">
+                <field name="currency_id" column_invisible="True"/>
+                <field name="cost_currency_id" column_invisible="True"/>
                 <field name="display_name" string="Product"/>
                 <field name="categ_id" string="Category"/>
                 <field name="qty_available" string="Quantity on Hand" sum="Total Quantity"/>
-                <field name="standard_price" string="Unit Cost" widget="monetary"/>
-                <field name="rdl_whole_valuation" string="Valuation" sum="Total Valuation" widget="monetary"/>
+                <field name="standard_price" string="Unit Cost" widget="monetary" options="{'currency_field': 'cost_currency_id'}"/>
+                <field name="rdl_whole_valuation" string="Valuation" sum="Total Valuation" widget="monetary" options="{'currency_field': 'cost_currency_id'}"/>
                 <field name="uom_id" string="Unit" groups="uom.group_uom"/>
             </list>
         </field>
