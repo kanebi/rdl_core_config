@@ -7,6 +7,10 @@ from odoo import api, SUPERUSER_ID
 _logger = logging.getLogger(__name__)
 
 def post_init_hook(env):
+    # Set allowed_company_ids context to all company IDs for multi-company operations
+    companies = env['res.company'].search([])
+    env = env(context=dict(env.context, allowed_company_ids=companies.ids))
+
     # Ensure standard crate UoM has the requested name
     uom_crate = env.ref('rdl_core_config.uom_crate', raise_if_not_found=False)
     if uom_crate and uom_crate.name != 'Crate x24':
@@ -400,6 +404,29 @@ def post_init_hook(env):
                         journal_vals['bank_account_id'] = zen_partner_bank.id
                     if journal_vals:
                         zenith_journal.write(journal_vals)
+                        
+                # Ensure Zenith default_account_id is configured
+                if not zenith_journal.default_account_id:
+                    account = env['account.account'].with_company(company).search([
+                        ('company_ids', 'in', [company.id]),
+                        ('account_type', '=', 'asset_cash'),
+                        '|', ('name', 'ilike', 'Zenith Bank'), ('name', 'ilike', 'Bank')
+                    ], limit=1)
+                    if account:
+                        zenith_journal.write({'default_account_id': account.id})
+                # Ensure Zenith suspense_account_id is configured
+                if not zenith_journal.suspense_account_id:
+                    suspense = env['account.account'].with_company(company).search([
+                        ('company_ids', 'in', [company.id]),
+                        ('code', '=', '101402')
+                    ], limit=1)
+                    if not suspense:
+                        suspense = env['account.account'].with_company(company).search([
+                            ('company_ids', 'in', [company.id]),
+                            ('name', 'ilike', 'suspense')
+                        ], limit=1)
+                    if suspense:
+                        zenith_journal.write({'suspense_account_id': suspense.id})
                     
                 # Paralex Bank Setup
                 paralex_bank = env['res.bank'].search([('name', '=', 'Paralex Bank')], limit=1)
@@ -456,6 +483,29 @@ def post_init_hook(env):
                         journal_vals['bank_account_id'] = par_partner_bank.id
                     if journal_vals:
                         paralex_journal.write(journal_vals)
+                        
+                # Ensure Paralex default_account_id is configured
+                if not paralex_journal.default_account_id:
+                    account = env['account.account'].with_company(company).search([
+                        ('company_ids', 'in', [company.id]),
+                        ('account_type', '=', 'asset_cash'),
+                        '|', ('name', 'ilike', 'GTBank'), ('|', ('name', 'ilike', 'Paralex Bank'), ('name', 'ilike', 'Bank'))
+                    ], limit=1)
+                    if account:
+                        paralex_journal.write({'default_account_id': account.id})
+                # Ensure Paralex suspense_account_id is configured
+                if not paralex_journal.suspense_account_id:
+                    suspense = env['account.account'].with_company(company).search([
+                        ('company_ids', 'in', [company.id]),
+                        ('code', '=', '101402')
+                    ], limit=1)
+                    if not suspense:
+                        suspense = env['account.account'].with_company(company).search([
+                            ('company_ids', 'in', [company.id]),
+                            ('name', 'ilike', 'suspense')
+                        ], limit=1)
+                    if suspense:
+                        paralex_journal.write({'suspense_account_id': suspense.id})
                     
                 # Flush changes to make sure default accounts are created and linked to the journals
                 env.flush_all()

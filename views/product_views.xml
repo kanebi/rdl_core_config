@@ -37,7 +37,7 @@
                 <field name="categ_id" string="Category"/>
                 <field name="qty_available" string="Quantity on Hand" sum="Total Quantity"/>
                 <field name="standard_price" string="Unit Cost" widget="monetary"/>
-                <field name="total_value" string="Valuation" sum="Total Valuation" widget="monetary"/>
+                <field name="rdl_whole_valuation" string="Valuation" sum="Total Valuation" widget="monetary"/>
                 <field name="uom_id" string="Unit" groups="uom.group_uom"/>
             </list>
         </field>

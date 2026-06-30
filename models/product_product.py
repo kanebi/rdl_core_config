@@ -4,6 +4,17 @@ from odoo import api, fields, models
 class ProductProduct(models.Model):
     _inherit = 'product.product'
 
+    rdl_whole_valuation = fields.Float(
+        string="Valuation",
+        compute="_compute_rdl_whole_valuation",
+        help="Valuation calculated as Quantity On Hand * Unit Cost (Standard Price)."
+    )
+
+    @api.depends('qty_available', 'standard_price')
+    def _compute_rdl_whole_valuation(self):
+        for product in self:
+            product.rdl_whole_valuation = product.qty_available * product.standard_price
+
     def _process_pos_ui_product_product(self, products, config_id):
         super()._process_pos_ui_product_product(products, config_id)
         
