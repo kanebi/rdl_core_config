@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
 import logging
-from odoo import api, fields, models, _
+from odoo import fields, models, _
 from odoo.exceptions import UserError
 import io
 
@@ -12,14 +12,25 @@ try:
 except ImportError:
     openpyxl = None
 
+
 class InventoryImportWizard(models.TransientModel):
     _name = 'inventory.import.wizard'
     _description = 'Import Opening Inventory from Excel'
 
     excel_file = fields.Binary(string='Excel File', required=True)
     file_name = fields.Char(string='File Name')
-    sheet_index = fields.Integer(string='Sheet Index', default=3, required=True, help="0-based index of the sheet to read.")
-    header_row_index = fields.Integer(string='Header Row Index', default=3, required=True, help="0-based index of the header row.")
+    sheet_index = fields.Integer(
+        string='Sheet Index',
+        default=3,
+        required=True,
+        help="0-based index of the sheet to read.",
+    )
+    header_row_index = fields.Integer(
+        string='Header Row Index',
+        default=3,
+        required=True,
+        help="0-based index of the header row.",
+    )
 
     def action_import_inventory(self):
         if not openpyxl:
@@ -46,7 +57,8 @@ class InventoryImportWizard(models.TransientModel):
         qty_col = None
 
         for col_idx, col_name in enumerate(header_row):
-            if not col_name: continue
+            if not col_name:
+                continue
             col_name_str = str(col_name).strip().lower()
             if col_name_str == 'sku':
                 sku_col = col_idx
@@ -65,8 +77,8 @@ class InventoryImportWizard(models.TransientModel):
         Product = self.env['product.product']
 
         success_count = 0
-        quantities_to_apply = {} # {product_id: qty}
-        
+        quantities_to_apply = {}
+
         for r_idx in range(self.header_row_index + 1, len(rows)):
             row = rows[r_idx]
             sku = row[sku_col] if sku_col < len(row) else None
@@ -90,26 +102,16 @@ class InventoryImportWizard(models.TransientModel):
             if qty == 0:
                 continue
 
-            if product.is_brewery:
-                if product.liquid_product_id:
-                    liquid_qty = qty * (product.brewery_liquid_qty or 1.0)
-                    quantities_to_apply[product.liquid_product_id.id] = quantities_to_apply.get(product.liquid_product_id.id, 0.0) + liquid_qty
-                if product.bottle_product_id:
-                    bottle_qty = qty * (product.brewery_bottle_qty or 1.0)
-                    quantities_to_apply[product.bottle_product_id.id] = quantities_to_apply.get(product.bottle_product_id.id, 0.0) + bottle_qty
-                if product.crate_product_id:
-                    crate_qty = qty * getattr(product, 'brewery_crate_qty', 1.0)
-                    quantities_to_apply[product.crate_product_id.id] = quantities_to_apply.get(product.crate_product_id.id, 0.0) + crate_qty
-            else:
-                quantities_to_apply[product.id] = quantities_to_apply.get(product.id, 0.0) + qty
+            # Product UoM is the pack (crate/carton); Excel qty is already in packs.
+            quantities_to_apply[product.id] = quantities_to_apply.get(product.id, 0.0) + qty
 
         for prod_id, total_qty in quantities_to_apply.items():
-            if total_qty <= 0: continue
+            if total_qty <= 0:
+                continue
 
-            # Create or update stock quant (Inventory Adjustment)
             quant = Quant.search([
                 ('product_id', '=', prod_id),
-                ('location_id', '=', default_location_id)
+                ('location_id', '=', default_location_id),
             ], limit=1)
 
             if not quant:

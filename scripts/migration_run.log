@@ -1,0 +1,111 @@
+=== RDL migration run 2026-08-09T21:27:04+01:00 ===
+--- Pre-checks ---
+18.0.2.2.0
+1
+28
+--- POS sessions ---
+ id |         name          |      state      
+----+-----------------------+-----------------
+  2 | Van POS Profile/00000 | opening_control
+(1 row)
+
+--- Close stuck POS opening_control sessions ---
+UPDATE 1
+--- Clear draft inventory flags ---
+UPDATE 5
+--- Run odoo shell migration ---
+Traceback (most recent call last):
+  File "/home/kane/odoo-18/./odoo-source/odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "/home/kane/odoo-18/odoo-source/odoo/cli/command.py", line 76, in main
+    o.run(args)
+  File "/home/kane/odoo-18/odoo-source/odoo/cli/shell.py", line 130, in run
+    self.shell(config['db_name'])
+  File "/home/kane/odoo-18/odoo-source/odoo/cli/shell.py", line 123, in shell
+    self.console(local_vars)
+  File "/home/kane/odoo-18/odoo-source/odoo/cli/shell.py", line 68, in console
+    exec(sys.stdin.read(), local_vars)
+  File "<string>", line 41, in <module>
+  File "/home/kane/odoo-18/extra-addons/rdl_core_config/migrate_finished_sku.py", line 395, in run_finished_sku_migration
+    configure_packaged_drinks(env)
+  File "/home/kane/odoo-18/extra-addons/rdl_core_config/migrate_finished_sku.py", line 329, in configure_packaged_drinks
+    tmpl._configure_pack_uoms()
+  File "/home/kane/odoo-18/extra-addons/rdl_core_config/models/product_template.py", line 156, in _configure_pack_uoms
+    super(ProductTemplate, template).write(vals)
+  File "/home/kane/odoo-18/odoo-source/addons/stock_account/models/product.py", line 91, in write
+    res = super(ProductTemplate, self).write(vals)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kane/odoo-18/odoo-source/addons/mrp/models/product.py", line 73, in write
+    return super().write(values)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kane/odoo-18/odoo-source/addons/stock/models/product.py", line 941, in write
+    raise UserError(_("You cannot change the unit of measure as there are already stock moves for this product. If you want to change the unit of measure, you should rather archive this product and create a new one."))
+odoo.exceptions.UserError: You cannot change the unit of measure as there are already stock moves for this product. If you want to change the unit of measure, you should rather archive this product and create a new one.
+=== RDL migration run 2026-08-09T21:30:31+01:00 ===
+--- Pre-checks ---
+18.0.2.2.0
+1
+28
+--- POS sessions ---
+ id | name | state 
+----+------+-------
+(0 rows)
+
+--- Close stuck POS opening_control sessions ---
+UPDATE 0
+--- Clear draft inventory flags ---
+UPDATE 0
+--- Run odoo shell migration ---
+RDL finished-SKU migration result: {'staged': 28, 'moved_packs': 1053.0, 'archived_components': 144, 'target_svl_value': 13803323.72}
+Verify: parent SVL remaining_value ~= prior component total (~13.8M); component internal qty/SVL = 0; phantom BOMs = 0.
+--- Post-verify ---
+ phantom_boms 
+--------------
+            0
+(1 row)
+
+ brewery_parent_qty | component_qty 
+--------------------+---------------
+            1053.00 |          0.00
+(1 row)
+
+  svl_value  
+-------------
+ 13803323.72
+(1 row)
+
+=== DONE 2026-08-09T21:31:01+01:00 ===
+=== RDL migration run 2026-08-09T21:32:11+01:00 ===
+--- Pre-checks ---
+18.0.2.2.0
+1
+28
+--- POS sessions ---
+ id | name | state 
+----+------+-------
+(0 rows)
+
+--- Close stuck POS opening_control sessions ---
+UPDATE 0
+--- Clear draft inventory flags ---
+UPDATE 0
+--- Run odoo shell migration ---
+RDL finished-SKU migration result: {'staged': 28, 'moved_packs': 1053.0, 'archived_components': 0, 'target_svl_value': 13803323.72}
+Verify: parent SVL remaining_value ~= prior component total (~13.8M); component internal qty/SVL = 0; phantom BOMs = 0.
+--- Post-verify ---
+ phantom_boms 
+--------------
+            0
+(1 row)
+
+ brewery_parent_qty | component_qty 
+--------------------+---------------
+            1053.00 |          0.00
+(1 row)
+
+  svl_value  
+-------------
+ 13803323.72
+(1 row)
+
+=== DONE 2026-08-09T21:32:17+01:00 ===

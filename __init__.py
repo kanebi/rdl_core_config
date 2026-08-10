@@ -6,6 +6,58 @@ from odoo import api, SUPERUSER_ID
 
 _logger = logging.getLogger(__name__)
 
+def _set_default_zero_taxes(env, company):
+    """Point company default taxes to NG 0% VAT after chart template is loaded."""
+    Tax = env['account.tax'].with_company(company)
+    sale_tax = Tax.search([
+        ('type_tax_use', '=', 'sale'),
+        ('amount', '=', 0),
+        ('country_id.code', '=', 'NG'),
+    ], limit=1)
+    purchase_tax = Tax.search([
+        ('type_tax_use', '=', 'purchase'),
+        ('amount', '=', 0),
+        ('country_id.code', '=', 'NG'),
+    ], limit=1)
+    if sale_tax and purchase_tax:
+        company.write({
+            'account_sale_tax_id': sale_tax.id,
+            'account_purchase_tax_id': purchase_tax.id,
+        })
+
+
+def _configure_rdl_category_valuation(env):
+    """FIFO + automated valuation once NG chart stock accounts exist."""
+    parent = env.ref('product.product_category_all', raise_if_not_found=False)
+    if not parent:
+        return
+    parent_accounts = {
+        'property_stock_valuation_account_id': parent.property_stock_valuation_account_id.id,
+        'property_stock_account_input_categ_id': parent.property_stock_account_input_categ_id.id,
+        'property_stock_account_output_categ_id': parent.property_stock_account_output_categ_id.id,
+        'property_stock_journal': parent.property_stock_journal.id,
+    }
+    if not parent_accounts['property_stock_valuation_account_id']:
+        return
+    for xmlid in (
+        'product_category_liquid',
+        'product_category_empties',
+        'product_category_kits',
+    ):
+        cat = env.ref(f'rdl_core_config.{xmlid}', raise_if_not_found=False)
+        if not cat:
+            continue
+        try:
+            with env.cr.savepoint():
+                cat.write({
+                    'property_cost_method': 'fifo',
+                    'property_valuation': 'real_time',
+                    **parent_accounts,
+                })
+        except Exception as exc:
+            _logger.warning('Category valuation skipped for %s: %s', xmlid, exc)
+
+
 def post_init_hook(env):
     # Set allowed_company_ids context to all company IDs for multi-company operations
     companies = env['res.company'].search([])
@@ -15,6 +67,16 @@ def post_init_hook(env):
     uom_crate = env.ref('rdl_core_config.uom_crate', raise_if_not_found=False)
     if uom_crate and uom_crate.name != 'Crate x24':
         uom_crate.write({'name': 'Crate x24'})
+
+    # Enable multi-UoM so Bottle and Crate/Carton can both be used on SO/PO lines
+    try:
+        with env.cr.savepoint():
+            group_uom = env.ref('uom.group_uom', raise_if_not_found=False)
+            group_user = env.ref('base.group_user', raise_if_not_found=False)
+            if group_uom and group_user and group_uom not in group_user.implied_ids:
+                group_user.write({'implied_ids': [(4, group_uom.id)]})
+    except Exception:
+        pass
 
     # 1. First import all Seerbit banks into res.bank
     try:
@@ -60,19 +122,31 @@ def post_init_hook(env):
 
     # 3. Loop over all companies and set up warehouses, locations, POS profiles, journals, and opening balances
     for company in env['res.company'].search([]):
-        # If no chart of accounts is configured, install the Nigerian accounting template
+        account_count = env['account.account'].search_count([
+            ('company_ids', 'in', company.id),
+        ])
+        # Avoid duplicate NG chart load (causes ValidationError on account codes)
         if not company.chart_template:
             country_ng = env['res.country'].search([('code', '=', 'NG')], limit=1)
-            if country_ng:
+            if country_ng and not company.country_id:
                 company.write({'country_id': country_ng.id})
-            try:
-                env['account.chart.template'].try_loading('ng', company)
-            except Exception:
-                pass
+            if account_count == 0:
+                try:
+                    env['account.chart.template'].try_loading('ng', company)
+                except Exception:
+                    pass
+            elif account_count > 0:
+                company.chart_template = 'ng'
 
         # Skip companies without chart template (not accounting enabled)
         if not company.chart_template:
             continue
+
+        try:
+            with env.cr.savepoint():
+                _set_default_zero_taxes(env, company)
+        except Exception as exc:
+            _logger.warning('Default 0%% taxes not set for %s: %s', company.name, exc)
             
         try:
             with env.cr.savepoint():
@@ -549,17 +623,18 @@ def post_init_hook(env):
                         })]
                     })
                     
-                guinness_liquid = env.ref('rdl_core_config.product_guinness_liquid_single', raise_if_not_found=False)
-                if guinness_liquid:
+                guinness_tmpl = env.ref('rdl_core_config.product_tmpl_guinness_case_24', raise_if_not_found=False)
+                guinness_product = guinness_tmpl.product_variant_id if guinness_tmpl else False
+                if guinness_product:
                     existing_op = env['stock.warehouse.orderpoint'].search([
-                        ('product_id', '=', guinness_liquid.id),
+                        ('product_id', '=', guinness_product.id),
                         ('location_id', '=', van_loc.id),
                         ('company_id', '=', company.id)
                     ], limit=1)
                     if not existing_op:
                         env['stock.warehouse.orderpoint'].with_company(company).create({
                             'name': 'OP/Van-001/Guinness',
-                            'product_id': guinness_liquid.id,
+                            'product_id': guinness_product.id,
                             'location_id': van_loc.id,
                             'route_id': route.id,
                             'product_min_qty': 0.0,
@@ -709,14 +784,17 @@ def post_init_hook(env):
     except Exception as e:
         _logger.exception("Error in post_init_hook for company: %s", company.name)
 
-    # 5. Ensure all existing brewery products are synced to create the new Empties kit component and BOM
+    # 5. Configure finished-SKU pack UoMs and remove any leftover phantom kit BOMs
     try:
         with env.cr.savepoint():
-            brewery_templates = env['product.template'].search([('is_brewery', '=', True)])
-            for template in brewery_templates:
-                template._sync_brewery_components()
+            finished = env['product.template'].search([
+                '|', ('is_brewery', '=', True), ('is_packaged_drinks', '=', True)
+            ])
+            if finished:
+                finished._configure_pack_uoms()
+                finished._clear_phantom_boms()
     except Exception:
-        pass
+        _logger.exception("Error configuring finished-SKU pack UoMs")
 
     # 6. Create custom RDL role-based users
     try:
@@ -801,6 +879,5 @@ def post_init_hook(env):
     except Exception as e:
         _logger.exception("Error updating category costing methods to FIFO: %s", str(e))
 
-
-
+    _configure_rdl_category_valuation(env)
 
