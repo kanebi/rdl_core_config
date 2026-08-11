@@ -138,7 +138,6 @@
             <field name="is_storable" eval="True"/>
             <field name="available_in_pos" eval="False"/>
             <field name="active" eval="False"/>
-            <field name="is_brewery" eval="True"/>
             <field name="pack_qty">24.0</field>
             <field name="pack_uom_type">crate</field>
             <field name="uom_id" ref="uom_crate"/>

@@ -784,17 +784,15 @@ def post_init_hook(env):
     except Exception as e:
         _logger.exception("Error in post_init_hook for company: %s", company.name)
 
-    # 5. Configure finished-SKU pack UoMs and remove any leftover phantom kit BOMs
+    # 5. Configure pack UoMs and remove any leftover phantom kit BOMs
     try:
         with env.cr.savepoint():
-            finished = env['product.template'].search([
-                '|', ('is_brewery', '=', True), ('is_packaged_drinks', '=', True)
-            ])
-            if finished:
-                finished._configure_pack_uoms()
-                finished._clear_phantom_boms()
+            pack_products = env['product.template'].search([('pack_qty', '>', 1)])
+            if pack_products:
+                pack_products._configure_pack_uoms()
+                pack_products._clear_phantom_boms()
     except Exception:
-        _logger.exception("Error configuring finished-SKU pack UoMs")
+        _logger.exception("Error configuring pack UoMs")
 
     # 6. Create custom RDL role-based users
     try:

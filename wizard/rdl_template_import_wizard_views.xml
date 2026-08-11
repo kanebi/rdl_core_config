@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_rdl_template_import_wizard_form" model="ir.ui.view">
+        <field name="name">rdl.template.import.wizard.form</field>
+        <field name="model">rdl.template.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import RDL Template">
+                <group>
+                    <field name="file_name" invisible="1"/>
+                    <field name="excel_file" filename="file_name"/>
+                </group>
+                <group string="What to import">
+                    <field name="import_products"/>
+                    <field name="import_inventory"/>
+                </group>
+                <group string="Sheet mapping" groups="base.group_no_one">
+                    <field name="product_sheet_index"/>
+                    <field name="inventory_sheet_index"/>
+                    <field name="header_row"/>
+                </group>
+                <footer>
+                    <button name="action_import" string="Import" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_rdl_template_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import RDL Template</field>
+        <field name="res_model">rdl.template.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_rdl_template_import_wizard"
+              name="Import RDL Template (Excel)"
+              parent="stock.menu_stock_inventory_control"
+              action="action_rdl_template_import_wizard"
+              sequence="90"/>
+</odoo>

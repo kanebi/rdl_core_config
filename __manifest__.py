@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'RDL Core Config',
-    'version': '18.0.2.3.0',
+    'version': '18.0.2.5.1',
     'category': 'Operations/Inventory',
     'summary': 'Centralized configurations for warehouse, purchase, and POS channels.',
     'description': """
@@ -9,9 +9,8 @@ This module configures centralized main warehouse structure, default vendor init
 standard pricing mechanics, multi-channel customer workflows, and double-layered POS return logic
 for Odoo 18 Community.
 
-Finished goods are tracked as one SKU. Main UoM and list price are the full pack
-(e.g. Crate x24); Bottle/Can in the same UoM category converts price/qty on the order line.
-Kit/phantom BOM explosion and empties inventory tracking are not used.
+Storable products use standard Odoo inventory. Optional pack UoM (e.g. Crate x24) with
+Bottle/Can conversion on order lines. No kit/phantom BOM explosion.
 """,
     'depends': [
         'purchase',
@@ -41,6 +40,7 @@ Kit/phantom BOM explosion and empties inventory tracking are not used.
         'views/pos_config_views.xml',
         'wizard/bank_statement_import_wizard_views.xml',
         'wizard/product_import_wizard_views.xml',
+        'wizard/rdl_template_import_wizard_views.xml',
         'views/inventory_import_wizard_views.xml',
         'views/category_import_wizard_views.xml',
         'views/account_import_wizard_views.xml',

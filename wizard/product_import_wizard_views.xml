@@ -27,10 +27,4 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
-
-    <menuitem id="menu_product_import_wizard"
-              name="Import Products (Excel)"
-              parent="stock.menu_stock_inventory_control"
-              action="action_product_import_wizard"
-              sequence="100"/>
 </odoo>

@@ -1,40 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="product_template_only_form_view_inherit_brewery" model="ir.ui.view">
-        <field name="name">product.template.only.form.inherit.brewery</field>
+        <field name="name">product.template.only.form.inherit.rdl.packaging</field>
         <field name="model">product.template</field>
         <field name="inherit_id" ref="product.product_template_only_form_view"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@name='options']" position="inside">
-                <span class="d-inline-block">
-                    <field name="is_brewery"/>
-                    <label for="is_brewery"/>
-                </span>
-                <span class="d-inline-block">
-                    <field name="is_packaged_drinks"/>
-                    <label for="is_packaged_drinks"/>
-                </span>
-            </xpath>
-
             <xpath expr="//notebook" position="inside">
-                <page name="rdl_packaging"
-                      string="Packaging"
-                      invisible="not is_brewery and not is_packaged_drinks">
+                <page name="rdl_packaging" string="Packaging">
                     <group>
-                        <group string="Sales / Inventory UoM" name="group_pack_uom">
+                        <group string="Pack UoM" name="group_pack_uom">
                             <field name="pack_qty"/>
                             <field name="pack_uom_type"/>
                             <div colspan="2" class="text-muted">
-                                Main Unit of Measure and Sales Price are for the full pack
+                                Set Units per Pack above 1 to use a pack as the main UoM
                                 (e.g. Crate x24). On a sale/purchase line, change UoM to Bottle
-                                and Odoo converts price and stock by 1/24 automatically.
-                            </div>
-                        </group>
-                        <group string="Empties SKU" name="group_empties" invisible="not is_brewery">
-                            <field name="empties_product_id" options="{'no_create_edit': True}"/>
-                            <div colspan="2" class="text-muted">
-                                Consolidated empties (crate + bottles) at fixed ₦5,000 per unit.
-                                Drink list/cost price excludes this amount.
+                                or Can and Odoo converts price and stock automatically.
                             </div>
                         </group>
                     </group>

@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-RDL finished-SKU migration with consolidated empties SKU per brewery product.
+RDL finished-SKU migration (LEGACY — pre 18.0.2.4.0 empties split workflow).
 
-Valuation (balanced):
-  - Drink parent absorbs liquid component FIFO value
-  - Empties SKU absorbs empty-bottle + empty-crate FIFO value
-Commercial pricing:
-  - Empties fixed list/cost = EMPTIES_FIXED_PRICE (₦5,000) per unit (Units UoM)
-  - Drink list/cost = full pack price − EMPTIES_FIXED_PRICE
+Superseded by Excel product/inventory import. Kept for reference on old databases only.
 """
 import json
 import logging
@@ -103,7 +98,7 @@ def report_uom_locked_products(env):
     Template = env['product.template'].sudo()
     locked = []
     candidates = Template.search([
-        '|', ('is_brewery', '=', True), ('is_packaged_drinks', '=', True),
+        ('pack_qty', '>', 1),
         ('active', '=', True),
     ])
     for tmpl in candidates:
@@ -130,8 +125,7 @@ def report_uom_locked_products(env):
             locked.append({
                 'id': tmpl.id,
                 'name': tmpl.display_name,
-                'is_brewery': tmpl.is_brewery,
-                'is_packaged_drinks': tmpl.is_packaged_drinks,
+                'pack_qty': tmpl.pack_qty,
                 'list_price': tmpl.list_price,
                 'reasons': reasons,
             })
@@ -421,7 +415,6 @@ def archive_components(env, row):
     Product = env['product.product'].sudo()
     Template = env['product.template'].sudo()
     parent_tmpl = Template.browse(row.get('parent_tmpl_id')).exists()
-    linked_empties_id = parent_tmpl.empties_product_id.id if parent_tmpl and parent_tmpl.empties_product_id else False
 
     ids = [
         row.get('liquid_product_id'),
@@ -432,13 +425,11 @@ def archive_components(env, row):
     ]
     archived = 0
     for pid in filter(None, ids):
-        if linked_empties_id and pid == linked_empties_id:
-            continue
         product = Product.browse(pid).exists()
         if not product:
             continue
         tmpl = product.product_tmpl_id
-        if tmpl.is_brewery or tmpl.is_packaged_drinks:
+        if tmpl.pack_qty > 1:
             continue
         if tmpl.active:
             tmpl.write({
@@ -461,16 +452,9 @@ def archive_orphan_kit_products(env):
         '|',
         ('name', 'ilike', '(Empty Bottle)'),
         ('name', 'ilike', '(Empty Crate'),
-        ('is_brewery', '=', False),
-        ('is_packaged_drinks', '=', False),
     ])
-    linked_empties_tmpl_ids = set(
-        Template.search([('empties_product_id', '!=', False)]).mapped('empties_product_id.product_tmpl_id').ids
-    )
     count = 0
     for tmpl in orphans:
-        if tmpl.id in linked_empties_tmpl_ids:
-            continue
         if sum(tmpl.product_variant_ids.mapped('qty_available')):
             continue
         if tmpl.active:
@@ -494,8 +478,6 @@ def configure_parents_from_staging(env, rows):
         uom_name = (tmpl.uom_id.name or '').lower()
         pack_type = 'carton' if 'carton' in uom_name else 'case' if 'case' in uom_name else 'crate'
         tmpl.write({
-            'is_brewery': True,
-            'is_packaged_drinks': False,
             'pack_qty': pack_qty,
             'pack_uom_type': pack_type,
         })
@@ -503,7 +485,7 @@ def configure_parents_from_staging(env, rows):
 
 
 def configure_packaged_drinks(env):
-    templates = env['product.template'].sudo().search([('is_packaged_drinks', '=', True)])
+    templates = env['product.template'].sudo().search([('pack_uom_type', '=', 'carton'), ('pack_qty', '>', 1)])
     for tmpl in templates:
         vals = {}
         if not tmpl.pack_qty:
@@ -572,10 +554,10 @@ def run_finished_sku_migration(env, skip_preflight=False, phase2_split=False):
     if not rows:
         _logger.warning("No staging rows — metadata-only pass")
         configure_packaged_drinks(env)
-        brewery = env['product.template'].search([('is_brewery', '=', True)])
-        if brewery:
-            brewery._configure_pack_uoms()
-            brewery._clear_phantom_boms()
+        pack_products = env['product.template'].search([('pack_qty', '>', 1)])
+        if pack_products:
+            pack_products._configure_pack_uoms()
+            pack_products._clear_phantom_boms()
         return {'staged': 0, 'uom_locked': uom_locked}
 
     configure_parents_from_staging(env, rows)

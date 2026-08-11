@@ -9,7 +9,7 @@
                     <field name="file_name" invisible="1"/>
                     <field name="excel_file" filename="file_name"/>
                     <field name="sheet_index"/>
-                    <field name="header_row_index"/>
+                    <field name="header_row_index" string="Header Row (1-based, default 4)"/>
                 </group>
                 <footer>
                     <button string="Import" name="action_import_inventory" type="object" class="btn-primary"/>
@@ -34,7 +34,8 @@
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
                 <header>
-                    <button name="%(action_inventory_import_wizard)d" string="Load Stock" type="action" class="btn-primary" display="always"/>
+                    <button name="%(action_rdl_template_import_wizard)d" string="Import RDL Template" type="action" class="btn-primary" display="always"/>
+                    <button name="%(action_inventory_import_wizard)d" string="Load Stock Only" type="action" display="always"/>
                 </header>
             </xpath>
         </field>
