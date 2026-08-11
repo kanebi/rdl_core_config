@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'RDL Core Config',
-    'version': '18.0.2.5.1',
+    'version': '18.0.2.5.2',
     'category': 'Operations/Inventory',
     'summary': 'Centralized configurations for warehouse, purchase, and POS channels.',
     'description': """

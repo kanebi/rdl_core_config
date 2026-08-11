@@ -452,7 +452,7 @@ class ConfigMigrator:
                 """,
                 (name, f'%"{name}"%' if name else "", parent_id),
             )
-            row = {k: v for k, v in cat.items() if k not in ("id", "parent_path")}
+            row = {k: v for k, v in cat.items() if k not in ("id", "parent_path", "complete_name")}
             row["parent_id"] = parent_id
             if existing:
                 self._set_map("product_category", old_id, existing["id"])
@@ -516,7 +516,77 @@ class ConfigMigrator:
             self._commit()
         else:
             _logger.info("Skipping ir_property (table missing on source/target)")
+        self._recompute_parent_path("product_category")
+        self._recompute_product_category_complete_names()
+        self._commit()
         _logger.info("Migrated %d product categories, %d category properties", len(cats), migrated)
+
+    def _recompute_parent_path(self, table, parent_column="parent_id"):
+        """Rebuild parent_path after SQL migration (required for child_of domains)."""
+        if self.dry_run or not self._table_exists(self.tgt, table):
+            return
+        with self.tgt.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'public' AND table_name = %s AND column_name = 'parent_path'
+                """,
+                (table,),
+            )
+            if not cur.fetchone():
+                return
+            cur.execute(
+                f"""
+                WITH RECURSIVE __parent_store_compute(id, parent_path) AS (
+                    SELECT row.id, concat(row.id, '/')
+                      FROM "{table}" row
+                     WHERE row."{parent_column}" IS NULL
+                    UNION
+                    SELECT row.id, concat(comp.parent_path, row.id, '/')
+                      FROM "{table}" row
+                      JOIN __parent_store_compute comp ON row."{parent_column}" = comp.id
+                )
+                UPDATE "{table}" row
+                   SET parent_path = comp.parent_path
+                  FROM __parent_store_compute comp
+                 WHERE row.id = comp.id
+                """
+            )
+        _logger.info("Recomputed parent_path on %s", table)
+
+    def _recompute_product_category_complete_names(self):
+        if self.dry_run or not self._table_exists(self.tgt, "product_category"):
+            return
+        with self.tgt.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'public'
+                   AND table_name = 'product_category'
+                   AND column_name = 'complete_name'
+                """
+            )
+            if not cur.fetchone():
+                return
+            cur.execute(
+                """
+                WITH RECURSIVE tree AS (
+                    SELECT id, name::text AS nm, name::text AS complete_name
+                      FROM product_category
+                     WHERE parent_id IS NULL
+                    UNION ALL
+                    SELECT c.id, c.name::text, tree.complete_name || ' / ' || c.name::text
+                      FROM product_category c
+                      JOIN tree ON c.parent_id = tree.id
+                )
+                UPDATE product_category pc
+                   SET complete_name = tree.complete_name,
+                       write_date = NOW()
+                  FROM tree
+                 WHERE pc.id = tree.id
+                """
+            )
+        _logger.info("Recomputed product_category.complete_name")
 
     def migrate_companies(self):
         """Copy full res.company + company partner (address lives on partner in Odoo 18)."""
@@ -1148,6 +1218,8 @@ class ConfigMigrator:
             )
 
         _logger.info("Migrated stock structure (no quants/moves/pickings)")
+        self._recompute_parent_path("stock_location", parent_column="location_id")
+        self._commit()
 
     def migrate_pos(self):
         configs = self._src_fetchall("SELECT * FROM pos_config ORDER BY id")
